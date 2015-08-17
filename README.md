@@ -1,7 +1,7 @@
 ## ReaMIDI
 
 These scripts work in Reaper 5 only.  To use them you must put the ReaMIDI folder
-the Scripts folder of you REAPER resource path, which you can easily get to by
+the Scripts folder of your REAPER resource path, which you can easily get to by
 running the action...
 
 #####Show REAPER resource path in explorer
