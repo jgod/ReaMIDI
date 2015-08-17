@@ -1,0 +1,15 @@
+Legato
+> Think about MIDI editor to start and to end being to previous and next notes
+> if a selection of notes is in between.
+>>  Need to not just get selected notes in that case?
+
+Fixed Lengths
+
+Delete Notes
+
+Create new MIDI item from selection
+> existing track or new
+> remove or copy notes
+
+
+Velocity
