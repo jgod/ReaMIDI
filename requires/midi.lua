@@ -213,5 +213,7 @@ function createItem(current_take, new_track, events)
               reaper.MIDI_GetPPQPosFromProjQN(e.tk, e.endpos),e.chan,
               e.pitch,e.vel,false)
     end
+    --TODO: CCs n stuff.
   end
+  --reaper.MIDI_Sort(tk)
 end
