@@ -1,3 +1,5 @@
+_DEF_STRINGS_=true
+
 function trimWs(s)
   return s:match "^%s*(.-)%s*$"
 end

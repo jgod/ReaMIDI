@@ -1,3 +1,5 @@
+_DEF_TARGET_=true
+
 targets={  
           MIDIEditor=1,
           Selected=2,

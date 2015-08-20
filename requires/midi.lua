@@ -1,3 +1,5 @@
+_DEF_MIDI_=true
+
 -- places to hoover midi from
 -- midi editor - active item, active track
 -- arrange - current track
@@ -5,8 +7,9 @@
 --           selected items
 --           all
 
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\class.lua")
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\target.lua")
+if _DEF_CLASS_==nil then dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\class.lua") end
+if _DEF_TARGET_==nil then dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\target.lua") end
+
 
 -- 8 = Note Off
 -- 9 = Note On
