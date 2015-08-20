@@ -1,3 +1,4 @@
+if _DEF_CLASS_~=true then
 _DEF_CLASS_=true
 
 -- class.lua
@@ -44,4 +45,10 @@ function class(base, init)
    end
    setmetatable(c, mt)
    return c
+end
+
+
+
+
+--ifdef
 end

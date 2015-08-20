@@ -1,3 +1,4 @@
+if _DEF_STRINGS_~=true then
 _DEF_STRINGS_=true
 
 function trimWs(s)
@@ -18,4 +19,9 @@ function string:split( inSplitPattern, outResults )
   end
   table.insert( outResults, string.sub( self, theStart ) )
   return outResults
+end
+
+
+
+--ifdef
 end

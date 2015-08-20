@@ -1,3 +1,4 @@
+if _DEF_MIDI_~=true then
 _DEF_MIDI_=true
 
 -- places to hoover midi from
@@ -7,8 +8,8 @@ _DEF_MIDI_=true
 --           selected items
 --           all
 
-if _DEF_CLASS_==nil then dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\class.lua") end
-if _DEF_TARGET_==nil then dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\target.lua") end
+dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\class.lua")
+dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\target.lua")
 
 
 -- 8 = Note Off
@@ -216,4 +217,8 @@ function createItem(current_take, new_track, events)
     --TODO: CCs n stuff.
   end
   --reaper.MIDI_Sort(tk)
+end
+
+
+--ifdef
 end

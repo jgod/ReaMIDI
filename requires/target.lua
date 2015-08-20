@@ -1,3 +1,4 @@
+if _DEF_TARGET_~=true then
 _DEF_TARGET_=true
 
 targets={  
@@ -38,4 +39,8 @@ function getTargetTakes()
   end
   --reaper.ShowConsoleMsg("Number of takes: "..#tks.."\n")
   return target, tks
+end
+
+
+--ifdef
 end
