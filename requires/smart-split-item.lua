@@ -24,22 +24,14 @@ function uberSplitItem(item, split_pos)
 	  return
   end
   
-  --
-  -- just realised this is all a bit stupid and I should maybe
-  -- finding out how to copy an item, changing the start and end
-  -- position and just deleting notes from the right one if they
-  -- are before item start
-  --
   local n
-  
-  local notes
+  --local notes={}
+  local ntc,notes={}
   for i=1,#tks,1 do
     notes=getNotes({tks[i].tk},false,false)
-    local ntc={}
     for ii=1,#notes,1 do
       n=notes[ii]
       if n.startpos<reaper.TimeMap2_timeToQN(0,split_pos) and n.endpos>reaper.TimeMap2_timeToQN(0,split_pos) then
-        tks[i].altered=true
         ntc[#ntc+1]=n
         reaper.MIDI_SetNote(n.tk, n.idx,n.sel,n.mute,
             reaper.MIDI_GetPPQPosFromProjQN(n.tk, n.startpos),
@@ -47,24 +39,27 @@ function uberSplitItem(item, split_pos)
               n.chan, n.pitch,n.vel,nil,true)
       end
     end
-    tks[i].notes=deepcopy(notes) 
-    tks[i].ntc=deepcopy(ntc)
   end
   
-  for i=1,#tks,1 do
-    if tks[i].altered==true then
-      tk=reaper.GetMediaItemTake(item,tks[i].tk_num)
-      ntc=tks[i].ntc
-      for ii=1,#ntc,1 do
-        n=ntc[ii]
-        -- TODO: restore original note lengths here
-      end
-    end
-  end
   
   --right hand side of split item returned here
   --don't need to do anything with it
   local rit=reaper.SplitMediaItem(item,split_pos)
+ 
+  _DBG=true
+  --restore shortened notes in left (original) take to original length
+  for i=1,#ntc,1 do
+    n=ntc[i]
+    DBG("note    : "..i..         "  pitch : "..n.pitch)
+    DBG("startpos: "..n.startpos.."  endpos: "..n.endpos)
+    DBG("PPP startpos:"..reaper.MIDI_GetPPQPosFromProjQN(n.tk, n.startpos))
+    DBG("PPQ endpos  :"..reaper.MIDI_GetPPQPosFromProjQN(n.tk, n.endpos))
+    DBG("\n")
+    reaper.MIDI_SetNote(n.tk,n.idx,n.sel,n.mute,
+            reaper.MIDI_GetPPQPosFromProjQN(n.tk, n.startpos),
+            reaper.MIDI_GetPPQPosFromProjQN(n.tk, n.endpos),
+            n.chan,n.pitch,n.vel,nil,true)
+  end
   --unselect left item
   reaper.SetMediaItemSelected(item, false)
 end
@@ -80,15 +75,13 @@ if s>0 then
     itt=reaper.GetSelectedMediaItem(0,i-1)
     local pos=reaper.GetMediaItemInfo_Value(itt, "D_POSITION")
     local len=reaper.GetMediaItemInfo_Value(itt, "D_LENGTH")
-    DBG(tpos.." : ".. pos.." : "..(pos+len))
     if tpos>pos and tpos<(pos+len) then
-      --uberSplitItem(itt,tpos)
       its[#its+1]=itt
     end
   end
 end
 
-if #its>1 then
+if #its>0 then
   for i=1,#its,1 do
     uberSplitItem(its[i],tpos)
   end
