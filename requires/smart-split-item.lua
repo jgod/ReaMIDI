@@ -4,7 +4,7 @@ _DEF_SPLIT_MIDI_=true
 
 dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\midi.lua")
 
-function uberSplitItem(item, split_pos, extend_split_item)
+function uberSplitItem(item, split_pos, extend_split_item, select_left, select_right)
   local tk
   local tks={tk,tk_num}
   local is_midi=false
@@ -44,7 +44,6 @@ function uberSplitItem(item, split_pos, extend_split_item)
   
   
   --right hand side of split item returned here
-  --don't need to do anything with it
   local rit=reaper.SplitMediaItem(item,split_pos)
   
   --_DBG=true
@@ -76,33 +75,9 @@ function uberSplitItem(item, split_pos, extend_split_item)
          reaper.TimeMap2_timeToQN(0,split_pos))
   end
   --unselect left item
-  reaper.SetMediaItemSelected(item, false)
-end
-
-
-local its={}
-local itt
-local tpos=reaper.GetCursorPosition()
-local s=reaper.CountSelectedMediaItems(0)
-if s>0 then
-  --reaper.ShowConsoleMsg("Selected Items: "..s.."\n")
-  for i=1,s,1 do
-    itt=reaper.GetSelectedMediaItem(0,i-1)
-    local pos=reaper.GetMediaItemInfo_Value(itt, "D_POSITION")
-    local len=reaper.GetMediaItemInfo_Value(itt, "D_LENGTH")
-    if tpos>pos and tpos<(pos+len) then
-      its[#its+1]=itt
-    end
-  end
-end
-
-if #its>0 then
-  for i=1,#its,1 do
-    uberSplitItem(its[i],tpos,true)
-  end
-end
-reaper.UpdateArrange()
-          
+  if not select_left then reaper.SetMediaItemSelected(item, false) end
+  if not select_right then reaper.SetMediaItemSelected(rit, false) end
+end  
         
 
 --ifdef
