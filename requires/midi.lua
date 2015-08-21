@@ -45,7 +45,9 @@ types = {
 
 
 function DBG(msg)
-  --reaper.ShowConsoleMsg(msg.."\n")
+  if _DBG==true then
+    reaper.ShowConsoleMsg(msg.."\n")
+  end
 end
 
 function midicmp(a,b)

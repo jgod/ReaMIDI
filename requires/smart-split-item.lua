@@ -4,7 +4,7 @@ _DEF_SPLIT_MIDI_=true
 
 dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\midi.lua")
 
-function uberSplitItem(item, split_pos)
+function uberSplitItem(item, split_pos, extend_split_item)
   local tk
   local tks={tk,tk_num}
   local is_midi=false
@@ -25,6 +25,7 @@ function uberSplitItem(item, split_pos)
   end
   
   local n
+  
   --local notes={}
   local ntc,notes={}
   for i=1,#tks,1 do
@@ -45,20 +46,34 @@ function uberSplitItem(item, split_pos)
   --right hand side of split item returned here
   --don't need to do anything with it
   local rit=reaper.SplitMediaItem(item,split_pos)
- 
-  _DBG=true
+  
+  --_DBG=true
+  local last_note={endpos=-1,tk=-1}
+  local ispos
+  local l_note=0
   --restore shortened notes in left (original) take to original length
   for i=1,#ntc,1 do
     n=ntc[i]
-    DBG("note    : "..i..         "  pitch : "..n.pitch)
-    DBG("startpos: "..n.startpos.."  endpos: "..n.endpos)
-    DBG("PPP startpos:"..reaper.MIDI_GetPPQPosFromProjQN(n.tk, n.startpos))
-    DBG("PPQ endpos  :"..reaper.MIDI_GetPPQPosFromProjQN(n.tk, n.endpos))
-    DBG("\n")
+    -- have to move the item end with the extended notes or we break the note with
+    -- the furthest end time (it becomes very, very long (oomment the MIDI_SetItemExtents
+    -- lines out to see!))
+    if n.tk~=last_note.tk or n.endpos>l_note then
+      l_note=n.endpos
+      ispos=reaper.GetMediaItemInfo_Value(item, "D_POSITION")
+      reaper.MIDI_SetItemExtents(item,reaper.TimeMap2_timeToQN(0,ispos),
+           n.endpos)
+    end
+    
     reaper.MIDI_SetNote(n.tk,n.idx,n.sel,n.mute,
             reaper.MIDI_GetPPQPosFromProjQN(n.tk, n.startpos),
             reaper.MIDI_GetPPQPosFromProjQN(n.tk, n.endpos),
             n.chan,n.pitch,n.vel,nil,true)
+    if i~=1 and n.tk~=last_note.tk then reaper.MIDI_Sort() end
+    last_note.tk=n.tk
+  end
+  if extend_split_item==false then 
+    reaper.MIDI_SetItemExtents(item,reaper.TimeMap2_timeToQN(0,ispos),
+         reaper.TimeMap2_timeToQN(0,split_pos))
   end
   --unselect left item
   reaper.SetMediaItemSelected(item, false)
@@ -83,7 +98,7 @@ end
 
 if #its>0 then
   for i=1,#its,1 do
-    uberSplitItem(its[i],tpos)
+    uberSplitItem(its[i],tpos,true)
   end
 end
 reaper.UpdateArrange()
