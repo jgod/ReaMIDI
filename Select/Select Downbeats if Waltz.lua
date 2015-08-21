@@ -19,8 +19,6 @@ if #notes>0 then
     if (math.abs(n.startpos-n.meas_startpos)<tolerance or 
                 math.abs(n.startpos-n.meas_startpos)>n.qn_in_meas-tolerance) 
                 and (n.ts_num==3 and n.ts_denom==4) then
-      
-      
       selectEvent(n,true)
     else
       selectEvent(n,false)
