@@ -135,7 +135,6 @@ function getNotes(takes,sort,selected)
     midi_tk[i]=deepcopy(midi)
     table.sort(midi_tk[i], midicmp)
     midi={}
-    DBG("#midi_tk: "..#midi_tk[i].."\n")
   end
   local nn=1
   for i=1,#midi_tk,1 do
@@ -213,7 +212,6 @@ function createItem(current_take, new_track, events)
   for i=1,#events,1 do
     e=events[i]
     if e.type==types.note then
-      DBG("Type=note")
       reaper.MIDI_InsertNote(tk,false,false,
               reaper.MIDI_GetPPQPosFromProjQN(e.tk, e.startpos),
               reaper.MIDI_GetPPQPosFromProjQN(e.tk, e.endpos),e.chan,
