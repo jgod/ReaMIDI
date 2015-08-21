@@ -7,13 +7,11 @@ dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\midi.lua")
 -- pitch=pitch, sel=sel, chan=chan, vel=vel
 
 local target,notes=getTargetNotes(false)
-_DBG=true
 if #notes>0 then
   local n
   local tolerance=0.07 -- in quarter notes
   for i=1,#notes,1 do 
     n=notes[i]
-    DBG("n.ts_num: "..n.ts_num.."   n.ts_denom: "..n.ts_denom)
     -- notes that are within the tolerance of start of measure
     -- and it's a waltz - boom cha cha!
     if (math.abs(n.startpos-n.meas_startpos)<tolerance or 
@@ -24,11 +22,7 @@ if #notes>0 then
       selectEvent(n,false)
     end
   end
-  --createItem(n.tk,true,notes)
-  --setNotes(notes)
-  DBG("\n\n")
 end
-
 
 -- local cp = getCursorPositionQN()
 reaper.UpdateArrange()
