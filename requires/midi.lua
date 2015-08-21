@@ -153,9 +153,9 @@ end
 -- notes sorted by take, position and pitch.
 -- If MIDI Editor is active/focused it uses the active take and gets either
 -- selected notes or all if none are selected
-function getTargetNotes()
+function getTargetNotes(sel_notes_in_arrange)
   local target, takes=getTargetTakes() --from target.lua
-  local notes=getNotes(takes, false, (target==targets.MIDIEditor))
+  local notes=getNotes(takes, false, (target==targets.MIDIEditor) or sel_notes_in_arrange)
   if target==targets.MIDIEditor and #notes==0 then 
     notes=getNotes(takes, false, false)
   end
