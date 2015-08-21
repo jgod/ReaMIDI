@@ -114,7 +114,10 @@ function getNotes(takes,sort,selected)
     while ok do
       startpos=reaper.MIDI_GetProjQNFromPPQPos(tk, startpos)
       local meas, meas_startpos, meas_end=reaper.TimeMap_QNToMeasures(0,startpos)
-      local startpos_secs, _,_,num,denom,tempo=reaper.TimeMap_GetMeasureInfo(0, meas)
+     
+      -- BUG?  Should we have to take 1 away to get correct time sig?
+      local startpos_secs, _,_,num,denom,tempo=reaper.TimeMap_GetMeasureInfo(0, meas-1)
+      
       local qnpm=num/(denom/4)
       endpos=reaper.MIDI_GetProjQNFromPPQPos(tk, endpos)
       tr=reaper.GetMediaItemTake_Track(tk)
