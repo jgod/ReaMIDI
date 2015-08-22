@@ -7,7 +7,8 @@ running the action...
 #####Show REAPER resource path in explorer
 
 ...from within the program.  Then just drop the ReaMIDI folder in there so that
-the path ends in REAPER\Scripts\ReaMIDI.  If it's not exactly there the scripts 
+the path ends in REAPER\Scripts\ReaMIDI.  You might have to rename the folder
+from ReaMIDI-master to just ReaMIDI.  If it's not exactly that the scripts 
 will not work.
 
 You can run most of them either in the arrange view, where they will usually work
