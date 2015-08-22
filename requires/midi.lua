@@ -100,7 +100,10 @@ function deepcopy(orig)
     return copy
 end
 
-
+local meas_tolerance=nil
+function setMeasureTolerance(m)
+  meas_tolerance=m
+end
 
 function getNotes(takes,sort,selected)
   local ni, tr, tr_num, it, tk
@@ -114,12 +117,22 @@ function getNotes(takes,sort,selected)
     while ok do
       startpos=reaper.MIDI_GetProjQNFromPPQPos(tk, startpos)
       local meas, meas_startpos, meas_end=reaper.TimeMap_QNToMeasures(0,startpos)
-     
+      
       -- BUG?  Should we have to take 1 away to get correct time sig?
       local startpos_secs, _,_,num,denom,tempo=reaper.TimeMap_GetMeasureInfo(0, meas-1)
       
       local qnpm=num/(denom/4)
       endpos=reaper.MIDI_GetProjQNFromPPQPos(tk, endpos)
+      
+      -- *Probably don't do this*: change time-sig to next measure if note starts really close to it
+      -- TODO:  have a bigger think about actual placement and intended, musical placement
+      if meas_tolerance~=nil then
+        if meas_end-startpos<meas_tolerance then
+          local _,_,_,n,d,_=reaper.TimeMap_GetMeasureInfo(0, meas-1+1)  -- ^^ reminder in case of bug ^^
+          num,denom=n,d
+        end
+      end
+        
       tr=reaper.GetMediaItemTake_Track(tk)
       tr_num=reaper.GetMediaTrackInfo_Value(tr, "IP_TRACKNUMBER")  
       --DBG("tr_num: "..tr_num.."\n") 
