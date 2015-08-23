@@ -22,48 +22,54 @@ function uberSplitItem(item, split_pos, catch_early_notes_limit, extend_right, s
   local rit
   if is_midi==false then
     rit=reaper.SplitMediaItem(item,split_pos)
-    reaper.SetMediaItemSelected(item, false)
+    reaper.SetMediaItemSelected(item, select_left)
+    reaper.SetMediaItemSelected(rit, select_right)
 	  return
   end
   
   local n
   --local notes={}
+  local rea=0.0000001 -- rounding error adjustment
   local ntc,notes={}
   local spQN=reaper.TimeMap2_timeToQN(0,split_pos)
   _DBG=true
-  DBG("spQN: "..spQN)
   local ENPOS=1000000 --big default value so first earliest note pos will be smaller
   local en_pos=ENPOS --earliest note pos, to extend right hand item left by
-  for i=1,#tks,1 do
-    notes=getNotes({tks[i].tk},false,false)
-    if catch_early_notes_limit>0 then
+  --get earliest early note start for item
+  if catch_early_notes_limit>0 then 
+    for i=1,#tks,1 do
+      notes=getNotes({tks[i].tk},false,false)
       for ii=1,#notes,1 do
         n=notes[ii]
-        if n.startpos>spQN-catch_early_notes_limit and n.startpos<en_pos then 
+        if n.startpos-rea>spQN-catch_early_notes_limit and n.startpos+rea<en_pos+rea then 
           en_pos=n.startpos
         end
       end
     end
+  else
+    en_pos=spQN
+  end
+  
+  for i=1,#tks,1 do
+    notes=getNotes({tks[i].tk},false,false)
     for ii=1,#notes,1 do
       n=notes[ii]
-      if n.startpos<=spQN and n.endpos>spQN then
+      if n.startpos+rea<spQN-catch_early_notes_limit and n.endpos-rea>spQN then
         ntc[#ntc+1]=n
         reaper.MIDI_SetNote(n.tk, n.idx,n.sel,n.mute,
             reaper.MIDI_GetPPQPosFromProjQN(n.tk, n.startpos),
-            reaper.MIDI_GetPPQPosFromProjQN(n.tk, en_pos),--reaper.TimeMap2_timeToQN(0,split_pos)),--reaper.TimeMap2_timeToQN(0,split_pos)),
+            reaper.MIDI_GetPPQPosFromProjQN(n.tk, en_pos),
               n.chan, n.pitch,n.vel,nil,true)
       end
     end
   end
   
-  ---[[
+ 
   if catch_early_notes_limit>0 and en_pos<spQN then
-    split_pos=reaper.TimeMap2_QNToTime(0,en_pos)
+    split_pos=reaper.TimeMap2_QNToTime(0,en_pos-rea)
   else
-    split_pos=reaper.TimeMap2_QNToTime(0,spQN)
+    split_pos=reaper.TimeMap2_QNToTime(0,spQN-rea)
   end
-  
-  --split_pos=reaper.TimeMap2_QNToTime(0,spQN)
   
   --right hand side of split item returned here
   rit=reaper.SplitMediaItem(item,split_pos)
@@ -72,7 +78,6 @@ function uberSplitItem(item, split_pos, catch_early_notes_limit, extend_right, s
   local last_note={endpos=-1,tk=-1}
   local ispos,riepos
   local l_note=0
-  --local e_note=10000 --longest and earliest
   
   --restore shortened notes in left (original) take to original length
   for i=1,#ntc,1 do
@@ -84,17 +89,8 @@ function uberSplitItem(item, split_pos, catch_early_notes_limit, extend_right, s
       l_note=n.endpos
       ispos=reaper.GetMediaItemInfo_Value(item, "D_POSITION")
       reaper.MIDI_SetItemExtents(item,reaper.TimeMap2_timeToQN(0,ispos),
-           l_note)
+           l_note+rea)
     end
-    
-    --[[if catch_early_notes_limit>0 then
-      if n.tk~=last_note.tk or n.startpos<e_note then
-        e_note=n.startpos
-        riepos=reaper.GetMediaItemInfo_Value(rit, "D_POSITION")+reaper.GetMediaItemInfo_Value(rit,"D_LENGTH")
-        reaper.MIDI_SetItemExtents(item,e_note, riepos)
-      end
-    end
-    --]]
  
     reaper.MIDI_SetNote(n.tk,n.idx,n.sel,n.mute,
             reaper.MIDI_GetPPQPosFromProjQN(n.tk, n.startpos),
@@ -106,9 +102,9 @@ function uberSplitItem(item, split_pos, catch_early_notes_limit, extend_right, s
   if extend_right==false then 
     reaper.MIDI_SetItemExtents(item,reaper.TimeMap2_timeToQN(0,ispos), spQN)
   end
-  --unselect left item
-  if not select_left then reaper.SetMediaItemSelected(item, false) end
-  if not select_right then reaper.SetMediaItemSelected(rit, false) end
+  
+  reaper.SetMediaItemSelected(item, select_left)
+  reaper.SetMediaItemSelected(rit, select_right)
 end  
         
 

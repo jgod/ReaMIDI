@@ -17,7 +17,14 @@ end
 
 if #its>0 then
   for i=1,#its,1 do
-    uberSplitItem(its[i],tpos, 0.2, true, false, true)
+    uberSplitItem(its[i],tpos, 
+      0.2, -- this is the time (in QN) before the split point it will catch early notes and get
+           -- them into the right item (ie split earlier than the cursor)
+           -- ps, use relative snap in Reaper if you use this
+      true, -- true/false:  do you want to extend the left item so that all notes play after split?
+      false, -- leave left item selected after split
+      true   -- leave right item selected after split
+      )
   end
 end
 reaper.UpdateArrange()
