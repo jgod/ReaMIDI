@@ -26,17 +26,22 @@ function uberSplitItem(item, split_pos, extend_split_item, select_left, select_r
   
   local n
   
+  local rea=0.0000000001  --rounding error adjust
+  
   --local notes={}
+  local spQN=reaper.TimeMap2_timeToQN(0,split_pos)
   local ntc,notes={}
   for i=1,#tks,1 do
     notes=getNotes({tks[i].tk},false,false)
+  
     for ii=1,#notes,1 do
       n=notes[ii]
-      if n.startpos<reaper.TimeMap2_timeToQN(0,split_pos) and n.endpos>reaper.TimeMap2_timeToQN(0,split_pos) then
+      -- adjust for rounding error thing where 8<8
+      if n.startpos+rea<spQN and n.endpos-rea>spQN then
         ntc[#ntc+1]=n
         reaper.MIDI_SetNote(n.tk, n.idx,n.sel,n.mute,
             reaper.MIDI_GetPPQPosFromProjQN(n.tk, n.startpos),
-            reaper.MIDI_GetPPQPosFromProjQN(n.tk, reaper.TimeMap2_timeToQN(0,split_pos)),
+            reaper.MIDI_GetPPQPosFromProjQN(n.tk, spQN),
               n.chan, n.pitch,n.vel,nil,true)
       end
     end
@@ -49,7 +54,7 @@ function uberSplitItem(item, split_pos, extend_split_item, select_left, select_r
   --_DBG=true
   local last_note={endpos=-1,tk=-1}
   local ispos
-  local l_note=0
+  local l_note=0 -- el for longest
   --restore shortened notes in left (original) take to original length
   for i=1,#ntc,1 do
     n=ntc[i]
