@@ -15,6 +15,8 @@ if s>0 then
   end
 end
 
+
+reaper.Undo_BeginBlock()
 if #its>0 then
   for i=1,#its,1 do
     uberSplitItem(its[i],tpos, 
@@ -27,4 +29,5 @@ if #its>0 then
       )
   end
 end
+reaper.Undo_EndBlock("Smart Split - extend", -1)
 reaper.UpdateArrange()
