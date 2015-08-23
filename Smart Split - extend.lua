@@ -17,7 +17,7 @@ end
 
 if #its>0 then
   for i=1,#its,1 do
-    uberSplitItem(its[i],tpos,true, false, true)
+    uberSplitItem(its[i],tpos, 0.2, true, false, true)
   end
 end
 reaper.UpdateArrange()
