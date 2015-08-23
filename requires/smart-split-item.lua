@@ -30,42 +30,40 @@ function uberSplitItem(item, split_pos, catch_early_notes_limit, extend_right, s
   --local notes={}
   local ntc,notes={}
   local spQN=reaper.TimeMap2_timeToQN(0,split_pos)
+  _DBG=true
+  DBG("spQN: "..spQN)
   local ENPOS=1000000 --big default value so first earliest note pos will be smaller
   local en_pos=ENPOS --earliest note pos, to extend right hand item left by
   for i=1,#tks,1 do
     notes=getNotes({tks[i].tk},false,false)
-    for ii=1,#notes,1 do
-      n=notes[ii]
-      if n.startpos<(spQN) and n.endpos>spQN then
-        ntc[#ntc+1]=n
-        reaper.MIDI_SetNote(n.tk, n.idx,n.sel,n.mute,
-            reaper.MIDI_GetPPQPosFromProjQN(n.tk, n.startpos),
-            reaper.MIDI_GetPPQPosFromProjQN(n.tk, 0.1),--reaper.TimeMap2_timeToQN(0,split_pos)),
-              n.chan, n.pitch,n.vel,nil,true)
-      end
-      if catch_early_notes_limit>0 then
+    if catch_early_notes_limit>0 then
+      for ii=1,#notes,1 do
+        n=notes[ii]
         if n.startpos>spQN-catch_early_notes_limit and n.startpos<en_pos then 
           en_pos=n.startpos
         end
       end
     end
+    for ii=1,#notes,1 do
+      n=notes[ii]
+      if n.startpos<=spQN and n.endpos>spQN then
+        ntc[#ntc+1]=n
+        reaper.MIDI_SetNote(n.tk, n.idx,n.sel,n.mute,
+            reaper.MIDI_GetPPQPosFromProjQN(n.tk, n.startpos),
+            reaper.MIDI_GetPPQPosFromProjQN(n.tk, en_pos),--reaper.TimeMap2_timeToQN(0,split_pos)),--reaper.TimeMap2_timeToQN(0,split_pos)),
+              n.chan, n.pitch,n.vel,nil,true)
+      end
+    end
   end
   
-  --[[
+  ---[[
   if catch_early_notes_limit>0 and en_pos<spQN then
-    
-    for i=1,#ntc,1 do
-    reaper.MIDI_SetNote(n.tk, n.idx,n.sel,n.mute,
-            reaper.MIDI_GetPPQPosFromProjQN(n.tk, n.startpos),
-            reaper.MIDI_GetPPQPosFromProjQN(n.tk, 0.1), 
-            n.chan, n.pitch,n.vel,nil,true)
-    end
     split_pos=reaper.TimeMap2_QNToTime(0,en_pos)
   else
     split_pos=reaper.TimeMap2_QNToTime(0,spQN)
   end
-  --]]
-  split_pos=reaper.TimeMap2_QNToTime(0,spQN)
+  
+  --split_pos=reaper.TimeMap2_QNToTime(0,spQN)
   
   --right hand side of split item returned here
   rit=reaper.SplitMediaItem(item,split_pos)
