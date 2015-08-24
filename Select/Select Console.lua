@@ -7,10 +7,10 @@ dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\midi.lua")
 --     p          c           v            l            tsn            tsd 
 --   pitch     channel      velocity     length      timesig num   timesig denom
 
--- so input "l<2 and v>5 and c==1 and tns=5 and tsd=8" will select notes of length smaller than 2
+-- so input "l<2 and v>5 and c==1 and tns==5 and tsd==8" should select notes of length smaller than 2
 -- (beats) with a velocity greater than 5 on channel 1 if the time sig is 5/8
 
--- Works rom the arrange of the MIDI editor.
+-- Works from the arrange or the MIDI editor.
 
 local function eval(str) 
   return load('return '..str)() 
