@@ -1,6 +1,6 @@
 dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\midi.lua")
 
-local target, notes=getTargetNotes(false)
+local target, notes=getTargetNotes(false, false)
 
 local prev_note, cur_note
 local flex=0.25 -- amount of difference to allow between note start positions

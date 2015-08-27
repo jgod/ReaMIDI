@@ -1,6 +1,6 @@
 dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\midi.lua")
 
-local target,notes=getTargetNotes(false)
+local target,notes=getTargetNotes(false, false)
 
 -- tr=tr, tk=tk, idx=cnt, meas=measure, meas_start=meas_start,beat=beat, 
 -- ts_num=num,ts_denom=denom, qn_in_meas=qnpm, sel=sel, mute=mute, osq=sq, sq=sq, 

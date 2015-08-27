@@ -7,7 +7,7 @@ dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\midi.lua")
 -- pitch=pitch, sel=sel, chan=chan, vel=vel
 local tolerance=0.07 -- in quarter notes
 setMeasureTolerance(tolerance)
-local target,notes=getTargetNotes(false)
+local target,notes=getTargetNotes(false, false)
 
 if #notes>0 then
   local n

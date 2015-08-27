@@ -65,6 +65,7 @@ function getEvents(takes)
     local msg=""
     local ok, sel, mute, startpos, msg, msg_sz=reaper.MIDI_GetEvt(tk, e_cnt, true, true,1, msg)
     while ok do
+      startpos=reaper.MIDI_GetProjQNFromPPQPos(tk, startpos)
       local t=string.byte(msg:sub(1,1))
       local t1=string.byte(msg:sub(2,2))
       
@@ -165,10 +166,10 @@ end
 -- notes sorted by take, position and pitch.
 -- If MIDI Editor is active/focused it uses the active take and gets either
 -- selected notes or all if none are selected
-function getTargetNotes(sel_notes_in_arrange)
+function getTargetNotes(sel_notes_in_arrange, sel_only_in_ME)
   local target, takes=getTargetTakes() --from target.lua
   local notes=getNotes(takes, false, (target==targets.MIDIEditor) or sel_notes_in_arrange)
-  if target==targets.MIDIEditor and #notes==0 then 
+  if target==targets.MIDIEditor and #notes==0 and not sel_only_in_ME then 
     notes=getNotes(takes, false, false)
   end
   return target, notes

@@ -1,6 +1,6 @@
 dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\midi.lua")
 
-local target, notes=getTargetNotes(false)
+local target, notes=getTargetNotes(false, false)
 
 
 function fixedVelocities()

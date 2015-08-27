@@ -10,7 +10,7 @@ dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\midi.lua")
 dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\strings.lua")
 
 
-local target, notes=getTargetNotes()
+local target, notes=getTargetNotes(false,false)
 
 local nn_error_list={} -- named notes
 local ta_error_list={} -- transpose amount

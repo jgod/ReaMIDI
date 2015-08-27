@@ -30,7 +30,7 @@ nn=""
 nc=0
 nct=0 --note count time dependant
 function console(str)
-  local target,notes=getTargetNotes(false)
+  local target,notes=getTargetNotes(false, false)
   -- see midi.lua for available note parameters
   local cnt=0
   e2n=false
