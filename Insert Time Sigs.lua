@@ -19,27 +19,7 @@
 -- 3/4>3,6/8*100 : 4/4>3,3/4 : 3/4>3,6/8*100
 -- add different sections by separating with a colon
 
-
-
-function trimWs(s)
-  return s:match "^%s*(.-)%s*$"
-end
-
-
-function string:split( inSplitPattern, outResults )
-  if not outResults then
-    outResults = { }
-  end
-  local theStart = 1
-  local theSplitStart, theSplitEnd = string.find( self, inSplitPattern, theStart )
-  while theSplitStart do
-    table.insert( outResults, string.sub( self, theStart, theSplitStart-1 ) )
-    theStart = theSplitEnd + 1
-    theSplitStart, theSplitEnd = string.find( self, inSplitPattern, theStart )
-  end
-  table.insert( outResults, string.sub( self, theStart ) )
-  return outResults
-end
+dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\strings.lua")
 
 
 function insertTimeSigs()
