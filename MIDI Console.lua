@@ -1,7 +1,7 @@
 dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\midi.lua")
 dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\strings.lua")
 
--- Console for selecting notes
+-- MIDI Console for selecting and/or changing notes
 -- variables are...
 
 --     p          c           v            l            tsn            tsd 
@@ -16,7 +16,11 @@ dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\strings.lua")
 -- so input "l<2 and v>5 and c==1 and tns==5 and tsd==8" should select notes of length smaller than 2
 -- (beats) with a velocity greater than 5 on channel 1 if the time sig is 5/8
 
--- Works from the arrange or the MIDI editor.
+-- if you follow that with a colon then you can change the selected note
+
+-- eg   c==10:l=1
+-- sets the length of everything on channel 10 to 1 QN
+
 function nth(x)
   return (nct%x==1) 
 end
@@ -64,8 +68,10 @@ function console(str, act, select_if_true)
       if eval(str) then
         if act~="" then
           process(act)
+          -- setting channel only seems to work reliably when MIDI editor
+          -- is set to all channels
           n.pitch=lim(p,0,127)   n.chan=lim(c-1,0,15)   n.vel=lim(v,0,127)   
-          n.len=l   n.sel=true
+          n.len=l  n.endpos=n.startpos+l n.sel=true
           tk_notes[#tk_notes+1]=n
         else
           if select_if_true then selectEvent(n,true) end
@@ -76,13 +82,13 @@ function console(str, act, select_if_true)
       end
       e2n=not e2n
       if n.tk~=last_tk then
-        if #tk_notes>0 then setNotes(tk_notes)  reaper.MIDI_Sort()  end
+        if #tk_notes>0 then setNotes(tk_notes) end
         tk_notes={}
-        reaper.MIDI_Sort() 
+        reaper.MIDI_Sort(last_tk) 
       end
       last_tk=n.tk
     end
-    if #tk_notes>0 then setNotes(tk_notes) end
+    if #tk_notes>0 then setNotes(tk_notes) reaper.MIDI_Sort(tk_notes[1].tk) end
     reaper.TrackCtl_SetToolTip(tostring(cnt).." note(s) selected", 800,2, true)
   else
     reaper.TrackCtl_SetToolTip("No target notes (need selected, active MIDI take(s) or active MIDI editor)", 800,2, true)
