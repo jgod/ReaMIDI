@@ -33,9 +33,7 @@ function uberSplitItem(item, split_pos, catch_early_notes_limit, extend_right, s
   local ntc,notes={}
   local spQN=reaper.TimeMap2_timeToQN(0,split_pos)
   _DBG=true
-  local ENPOS=1000000 --big default value so first earliest note pos will be smaller
-  local en_pos=ENPOS --earliest note pos, to extend right hand item left by
-  en_pos=spQN-rea
+  local en_pos=spQN-rea -- earliest note for early split
   --get earliest early note start for item
   if catch_early_notes_limit>0 then 
     for i=1,#tks,1 do
