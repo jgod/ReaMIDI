@@ -29,7 +29,7 @@ function uberSplitItem(item, split_pos, catch_early_notes_limit, extend_right, s
   
   local n
   --local notes={}
-  local rea=0.00000001 -- rounding error adjustment
+  local rea=0.00001 -- small adjustment values -- making bigger fixes r.h.s. item notes note playing
   local ntc,notes={}
   local spQN=reaper.TimeMap2_timeToQN(0,split_pos)
   _DBG=true
@@ -41,7 +41,7 @@ function uberSplitItem(item, split_pos, catch_early_notes_limit, extend_right, s
       for ii=1,#notes,1 do
         n=notes[ii]
         if n.startpos-rea>spQN-catch_early_notes_limit and n.startpos+rea<en_pos+rea then 
-          en_pos=n.startpos+rea --adding rea stops first note in right item cutting previous notes off
+          en_pos=n.startpos-rea --subtracting rea stops first note in right item cutting previous notes off
         end
       end
     end
@@ -65,7 +65,7 @@ function uberSplitItem(item, split_pos, catch_early_notes_limit, extend_right, s
   
  
   if catch_early_notes_limit>0 and en_pos<spQN then
-    split_pos=reaper.TimeMap2_QNToTime(0,en_pos+rea)
+    split_pos=reaper.TimeMap2_QNToTime(0,en_pos-rea)
   else
     split_pos=reaper.TimeMap2_QNToTime(0,spQN)
   end
