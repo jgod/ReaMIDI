@@ -72,6 +72,8 @@ function uberSplitItem(item, split_pos, catch_early_notes_limit, extend_right, s
   
   --right hand side of split item returned here
   rit=reaper.SplitMediaItem(item,split_pos)
+  if rit==nil then return end -- fixes (script) crash where impossible split not detect by initial cursor
+                              -- position when early note split is on
   
   --_DBG=true
   local last_note={endpos=-1,tk=-1}
