@@ -21,6 +21,7 @@ dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\strings.lua")
 -- eg   c==10:l=1
 -- sets the length of everything on channel 10 to 1 QN
 
+
 function nth(x)
   return (nct%x==1) 
 end
@@ -29,8 +30,54 @@ local function eval(str)
   return load('return ('..str..')')() 
 end
 
+
 local function process(str)
   load(str)()
+end
+
+--_DBG=true
+DBG("---------------------------------------------------")
+local bpos_qn=0
+function beat(...)
+  local tsa=n.ts_denom/4 -- don't adjust tolerance by this to avoid
+                         -- it being too small when ts_denom>4
+                         -- except where range of beats is supplied
+  local tol_l=tolerance
+  local tol_r=tolerance
+  local args=table.pack(...)
+  for k,v in pairs(args) do
+    if k==1 then x=v end
+    if k==2 then 
+      tol_l=(v/tsa)+tolerance
+      tol_lqn=v+tolerance
+      tol_r=(v/tsa)
+    end
+  end
+  bpos_qn=n.meas_startpos+(x-1)/tsa
+    -- range extends left beyond measure start
+  if x-tol_l<=1 then
+    DBG("Poss early notes in prev measure")
+    -- CHECK qn vs beats for different time sigs here too!!!
+    if ((n.startpos-n.meas_startpos)>n.qn_in_meas-math.abs(x-1-tol_l)) then
+      DBG("Early beat before bar")
+      return true
+    end
+  end
+  
+  return (((n.startpos-bpos_qn)<tol_r) and 
+            (bpos_qn-n.startpos)<tol_l)
+end
+
+
+function qn(x)
+  if x<(0+tolerance) then
+    return (math.abs(n.startpos-n.meas_startpos)<tolerance or 
+                math.abs(n.startpos-n.meas_startpos)>n.qn_in_meas-tolerance)
+  else
+   
+    return (n.startpos-(n.meas_startpos+(x)))<tolerance and
+                 ((n.meas_startpos+(x))-n.startpos<tolerance)
+  end 
 end
 
 
@@ -40,9 +87,12 @@ local function lim(val,low_lim,upp_lim)
 end
 
 
-p, c, v, l, tsn, tsd, ts, e2n=nil --need globals for load() to work
+--need globals for load() to work
+tolerance=0.07 -- in quarter notes
+p, c, v, l, tsn, tsd, ts, e2n=nil 
 nn=""
 nc=0
+n={}
 nct=0 --note count time dependant
 function console(str, act, select_if_true)
   local target,notes=getTargetNotes(false, false)
@@ -50,8 +100,6 @@ function console(str, act, select_if_true)
   local cnt=0
   e2n=false
   if #notes>0 then
-    local n
-    local tolerance=0.07 -- in quarter notes
     local last_tk
     local tk_notes={}
     if #notes>0 then last_tk=notes[1].tk end
@@ -70,7 +118,7 @@ function console(str, act, select_if_true)
           process(act)
           -- setting channel only seems to work reliably when MIDI editor
           -- is set to all channels
-          n.pitch=lim(p,0,127)   n.chan=lim(c-1,0,15)   n.vel=lim(v,0,127)   
+          n.pitch=lim(p,0,127)   n.chan=lim(c-1,0,15)   n.vel=math.floor(lim(v,0,127))  
           n.len=l  n.endpos=n.startpos+l n.sel=true
           tk_notes[#tk_notes+1]=n
         else
@@ -95,6 +143,7 @@ function console(str, act, select_if_true)
   end
 end
 
+
 local exit=false
 
 function getValues()
@@ -105,9 +154,23 @@ function getValues()
   local str=string.lower(retvals)
   
   if str~="" then 
-    local sections=retvals:split(":")
-    if #sections==1 then sections[2]="" end
-    console(sections[1],sections[2],true) 
+    local sections=str:split(":")
+    if #sections==1 then
+      --_DBG=true
+      DBG("one section")
+      console(str,"",true)
+    end
+    if  #sections==2 then
+      if sections[2]:find('^[cmd]+$')==nil then -- 2 sections, but second is really third - [c]opy/[m]ove/[d]elete command
+        console(sections[1],sections[2],true)
+      else
+        console(sections[1],"",sections[2],true)
+      end
+    end
+    if #sections==3 then
+        console(sections[1],sections[2],sections[3])
+      
+    end
   else
     exit=true 
   end
