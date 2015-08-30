@@ -1,1 +1,64 @@
-Help file
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+ body{
+	 font-family: "Arial";
+	 margin:40px;
+	 width:960px;
+ }
+ 
+span.code {
+    background-color:#B8B8B8;
+    color:#000000;
+    margin:25px;
+    padding:3px;
+	border-width: 3px; 
+	border-style: solid; 
+	border-color: white; 
+}
+</style>
+</head>
+
+<body>
+<h2>MIDI Console: <span class="code">filter [: transform/action]</span></h2>
+<p>
+Enter a string containing note filter criteria.  You can optionally enter a colon and transform the
+returned notes by semi-directly changing their attributes.  There are a few handy functions that you can
+use too.
+<p>
+The console targets selected notes in the active MIDI editor, all notes in the active MIDI editor or 
+all notes of all active takes in selected items in the arrange view.  In that order.
+<p><br>
+<u><h3>Filter section</u> - variables and functions available</h3>
+<p><b>all</b> - all targetted notes (selected or not in MIDI editor etc) (or just leave filter section empty)
+<p><b>p</b> - pitch (0 - 127)
+<p><b>c</b> - channel (1 - 16)
+<p><b>v</b> - velocity (0 - 127)
+<p><b>l</b> - length (in quarter notes)
+<p><b>ts</b> - time signature, string.. eg "3/4" (include quotations)
+<p><b>ts_num</b> - tim sig numerator
+<p><b>ts_denom</b> - time sig denominator
+<p><b>beat(x)</b> - checks whether note is on beat X, with a bit of lee way for unquantized material
+<p><b>beat(x,range)</b> - same as above, but whether note is within <i>range</i> beats either side of beat X.
+<p><b>ran(x,low,high)</b> - check if X is within a range of values
+
+<p><br>
+<u><h3>Transform/action section</u> - variables available to alter and functions available</h3>
+<p><b>p</b> - pitch (0 - 127)
+<p><b>c</b> - channel (1 - 16)
+<p><b>v</b> - velocity (0 - 127)
+<p><b>l</b> - length (in quarter notes)
+<p><b>leg()</b> - legato
+<p><br>
+<i>eg</i>
+<p>
+<span class="code">v>50 and c==2</span> - will select and make available for transforming all notes with a 
+velocity over 50 on channel 2.  Remember the double equals in this filter section.
+<p>
+<span class="code">beat(2) or nn=="kick":c=10</span> - will select and make available for transforming all notes that are on
+beat 2 of a measure (+/- preset tolerance, so it catches slightly early and late notes) or the pitch is on a named
+note row called "kick".  Or "Kick", or "kIcK" - it uses lowercase to make matching easier.  Then changes channel to 10.
+<p>
+</body>
+</html>

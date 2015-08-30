@@ -2,24 +2,8 @@ dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\midi.lua")
 dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\strings.lua")
 
 -- MIDI Console for selecting and/or changing notes
--- variables are...
 
---     p          c           v            l            tsn            tsd 
---   pitch     channel      velocity     length      timesig num   timesig denom
-
---     e2n                  nn                       ts
--- every 2nd note     named note (name)    time sig string, eg "3/4"
-
---                 nth(n)
---      type "nth(3)" for every 3rd note/chord 
-
--- so input "l<2 and v>5 and c==1 and tns==5 and tsd==8" should select notes of length smaller than 2
--- (beats) with a velocity greater than 5 on channel 1 if the time sig is 5/8
-
--- if you follow that with a colon then you can change the selected note
-
--- eg   c==10:l=1
--- sets the length of everything on channel 10 to 1 QN
+-- helpfile in ReaMIDI\docs, type 'h' or 'help' in console to view it
 
 
 function nth(x)
@@ -93,6 +77,10 @@ local function lim(val,low_lim,upp_lim)
   if val<low_lim then return low_lim else return upp_lim end
 end
 
+function ran(x,y,z)
+  return x==lim(x,y,z)
+end
+
 
 --need globals for load() to work
 tolerance=0.07 -- in quarter notes
@@ -158,7 +146,7 @@ function console(str, act, final, select_if_true)
         reaper.MIDI_Sort(tk_notes[1].tk) 
       end
     end
-    reaper.TrackCtl_SetToolTip(tostring(cnt).." note(s) selected", 800,2, true)
+    reaper.TrackCtl_SetToolTip(tostring(cnt).." note(s) filtered/processed", 800,2, true)
   else
     reaper.TrackCtl_SetToolTip("No target notes (need selected, active MIDI take(s) or active MIDI editor)", 800,2, true)
   end
@@ -170,7 +158,7 @@ local exit=false
 function getValues()
   ok,retvals=""
   
-  ok, retvals=reaper.GetUserInputs("MIDI Console",1,"Search:Action:","")
+  ok, retvals=reaper.GetUserInputs("MIDI Console",1,"Search:Action (h for help)","")
   if not ok then exit=true end
   local str=string.lower(retvals)
   
@@ -183,6 +171,8 @@ function getValues()
       else
         if str=="h" or str=="help" then
           os.execute(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\docs\\help.html")
+        else
+          console(str,"","",true)
         end
       end        
     end
