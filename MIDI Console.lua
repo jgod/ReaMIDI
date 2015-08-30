@@ -26,8 +26,8 @@ function nth(x)
   return (nct%x==1) 
 end
 
-local function eval(str) 
-  return load('return ('..str..')')() 
+local function eval(str)
+  return load([[return (]]..str..[[)]])() 
 end
 
 
@@ -80,6 +80,13 @@ function qn(x)
   end 
 end
 
+local run_legato=false
+function leg()
+  if run_legato==false then
+    dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\legato.lua")
+  end
+  run_legato=true
+end
 
 local function lim(val,low_lim,upp_lim)
   if val>=low_lim and val<=upp_lim then return val end
@@ -91,10 +98,11 @@ end
 tolerance=0.07 -- in quarter notes
 p, c, v, l, tsn, tsd, ts, e2n=nil 
 nn=""
+all=true
 nc=0
 n={}
 nct=0 --note count time dependant
-function console(str, act, select_if_true)
+function console(str, act, final, select_if_true)
   local target,notes=getTargetNotes(false, false)
   -- see midi.lua for available note parameters
   local cnt=0
@@ -130,13 +138,26 @@ function console(str, act, select_if_true)
       end
       e2n=not e2n
       if n.tk~=last_tk then
-        if #tk_notes>0 then setNotes(tk_notes) end
+        if #tk_notes>0 then 
+          if run_legato==true then 
+            legato(tk_notes,false,false) 
+          else
+            setNotes(tk_notes)
+          end
+        end
         tk_notes={}
         reaper.MIDI_Sort(last_tk) 
       end
       last_tk=n.tk
     end
-    if #tk_notes>0 then setNotes(tk_notes) reaper.MIDI_Sort(tk_notes[1].tk) end
+    if #tk_notes>0 then 
+      if run_legato==true then 
+        legato(tk_notes,false,false)
+      else
+        setNotes(tk_notes) 
+        reaper.MIDI_Sort(tk_notes[1].tk) 
+      end
+    end
     reaper.TrackCtl_SetToolTip(tostring(cnt).." note(s) selected", 800,2, true)
   else
     reaper.TrackCtl_SetToolTip("No target notes (need selected, active MIDI take(s) or active MIDI editor)", 800,2, true)
