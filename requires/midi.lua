@@ -183,7 +183,7 @@ function setNotes(notes)
     reaper.MIDI_SetNote(n.tk, n.idx,n.sel,n.mute,
       reaper.MIDI_GetPPQPosFromProjQN(n.tk, n.startpos),
       reaper.MIDI_GetPPQPosFromProjQN(n.tk, n.endpos),n.chan,
-      n.pitch,n.vel,nil,true)
+      n.pitch,n.vel,nil)
   end
 end
 
@@ -201,7 +201,7 @@ function selectEvent(e,select)
     reaper.MIDI_SetNote(e.tk, e.idx,e.select,e.mute,
       reaper.MIDI_GetPPQPosFromProjQN(e.tk, e.startpos),
       reaper.MIDI_GetPPQPosFromProjQN(e.tk, e.endpos),e.chan,
-      e.pitch,e.vel,nil)
+      e.pitch,e.vel,nil,true)
   end
 end
 
