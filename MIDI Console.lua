@@ -153,23 +153,28 @@ function getValues()
   if not ok then exit=true end
   local str=string.lower(retvals)
   
-  if str~="" then 
+  if str~="" then
     local sections=str:split(":")
     if #sections==1 then
-      --_DBG=true
-      DBG("one section")
-      console(str,"",true)
-    end
-    if  #sections==2 then
-      if sections[2]:find('^[cmd]+$')==nil then -- 2 sections, but second is really third - [c]opy/[m]ove/[d]elete command
-        console(sections[1],sections[2],true)
+      if str=="" then 
+        str="all"
+        console(str,"","",true)
       else
-        console(sections[1],"",sections[2],true)
+        if str=="h" or str=="help" then
+          os.execute(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\docs\\help.html")
+        end
+      end        
+    end
+    if #sections==2 then
+      if sections[1]=="" then sections[1]="all" end
+      if sections[2]:find('^[cmd]+$')==nil then -- 2 sections, but second is really third - [c]opy/[m]ove/[d]elete command
+        console(sections[1],sections[2],"",true)
+      else
+        console(sections[1],"",sections[2],"",true)
       end
     end
     if #sections==3 then
-        console(sections[1],sections[2],sections[3])
-      
+        console(sections[1],sections[2],sections[3],true)
     end
   else
     exit=true 
