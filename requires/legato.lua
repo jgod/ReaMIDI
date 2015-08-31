@@ -13,12 +13,24 @@ function setNotesEdges(nts,position,start_not_finish)
   for i=1,#nts,1 do
     local n=nts[i]
     if start_not_finish~=true then
-      reaper.MIDI_SetNote(n.tk, n.idx,nil,nil,nil,reaper.MIDI_GetPPQPosFromProjQN(n.tk, position),nil,nil,nil,true)
+      n.endpos=position
     else
-      reaper.MIDI_SetNote(n.tk, n.idx,nil,nil,reaper.MIDI_GetPPQPosFromProjQN(n.tk, position),nil,nil,nil,nil,true)
+      n.startpos=position
     end
+    setNotes(nts)
   end
   DBG("\n")
+end
+
+function stretchNotes(nts,position,l_note_end)
+  local diff=position-l_note_end
+  for i=1,#nts,1 do
+    local n=nts[i]
+    n.endpos=n.endpos+diff
+    --reaper.MIDI_SetNote(n.tk, n.idx,nil,nil,nil,
+    --        reaper.MIDI_GetPPQPosFromProjQN(n.tk, n.endpos+diff),nil,nil,nil,true)
+    setNotes(nts)
+  end
 end
 
 function notesToNoteItemEdge(nts,note,stretch_to_start,stretch_to_end)
@@ -44,18 +56,22 @@ end
 
 function legato(notes, stretch_to_start,stretch_to_end)
   DBG("#notes: "..#notes)
+  local l_note_end=0 --longest note, use to preserve relative lengths
   if #notes==1 then notesToNoteItemEdge({notes[1]},notes[1],stretch_to_start,stretch_to_end) return end
   
   if #notes>1 then
     notes_to_stretch[1]=notes[1]
     first_notes=true --keep track of first batch of notes per take, to stretch to start if required
     prev_note=notes[1]
+    l_note_end=prev_note.endpos
     for i=2,#notes,1 do
       cur_note=notes[i]
       if cur_note.startpos>=prev_note.startpos+flex and prev_note.tk==cur_note.tk then
-        setNotesEdges(notes_to_stretch, cur_note.startpos+overlap,false)
+        stretchNotes(notes_to_stretch,cur_note.startpos+overlap,l_note_end)
+        l_note_end=cur_note.endpos
         if first_notes==true and stretch_to_start==true then
           notesToNoteItemEdge(notes_to_stretch,cur_note,true,false)
+          
           first_notes=false
         end
         reset_list()
@@ -67,6 +83,7 @@ function legato(notes, stretch_to_start,stretch_to_end)
           reset_list()
         else
           notes_to_stretch[#notes_to_stretch+1]=cur_note
+          if cur_note.endpos>l_note_end then l_note_end=cur_note.endpos end
           prev_note=cur_note
         end
       end
