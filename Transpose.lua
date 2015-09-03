@@ -16,25 +16,46 @@ local nn_error_list={} -- named notes
 local ta_error_list={} -- transpose amount
 local error=false
 
-function transpose(trans_amount)
+
+local note_names={
+  ["C"]=0,  ["C#"]=1, ["Db"]=1, ["D"]=2,  ["D#"]=3, ["Eb"]=3, ["E"]=4,  ["F"]=5,  
+  ["F#"]=6,  ["Gb"]=6, ["G"]=7,  ["G#"]=8,  ["Ab"]=8,  ["A"]=9,  ["A#"]=10,  ["Bb"]=10
+}
+
+
+function transpose(str)
+  local trans_amount
+  local spec_note=nil
+  if str~="" then
+    local sections=str:split(",")
+    trans_amount=tonumber(sections[1])
+    if trans_amount==nil then return end
+    if #sections>1 then
+      spec_note=note_names[string.upper(sections[2])]
+      if spec_note==nil then return end
+    end
+  end
+  
   if #notes>0 then
     local n
     for i=1,#notes,1 do 
       n=notes[i]
-      if reaper.GetTrackMIDINoteName(n.tr_num-1,n.pitch,0)==nil then
-        if n.pitch+trans_amount<0 or n.pitch+trans_amount>127 then
-          if #ta_error_list==0 or (#ta_error_list>0 and ta_error_list[#ta_error_list]~=n.tr) then
-            ta_error_list[#ta_error_list+1]=n.tr
+      if (spec_note~=nil and n.pitch%12==spec_note) or spec_note==nil then 
+        if reaper.GetTrackMIDINoteName(n.tr_num-1,n.pitch,0)==nil then
+          if n.pitch+trans_amount<0 or n.pitch+trans_amount>127 then
+            if #ta_error_list==0 or (#ta_error_list>0 and ta_error_list[#ta_error_list]~=n.tr) then
+              ta_error_list[#ta_error_list+1]=n.tr
+            end
+            error=true
           end
-          error=true
-        end
-        if reaper.GetTrackMIDINoteName(n.tr_num-1,n.pitch+trans_amount,0)==nil then
-          n.pitch=n.pitch+trans_amount
-        else
-          if #nn_error_list==0 or (#nn_error_list>0 and nn_error_list[#nn_error_list]~=n.tr) then
-            nn_error_list[#nn_error_list+1]=n.tr
+          if reaper.GetTrackMIDINoteName(n.tr_num-1,n.pitch+trans_amount,0)==nil then
+            n.pitch=n.pitch+trans_amount
+          else
+            if #nn_error_list==0 or (#nn_error_list>0 and nn_error_list[#nn_error_list]~=n.tr) then
+              nn_error_list[#nn_error_list+1]=n.tr
+            end
+            error=true
           end
-          error=true
         end
       end  
     end
@@ -66,10 +87,8 @@ ok,retvals=""
 ok, retvals=reaper.GetUserInputs("MIDI Transpose",1,"Amount: ","")
 retvals=trimWs(retvals)
 
-if tonumber(retvals)~=nil then
-  reaper.Undo_BeginBlock()
-  transpose(retvals)
-  reaper.Undo_EndBlock("Transpose MIDI", -1)
-  reaper.UpdateArrange()
-end
+reaper.Undo_BeginBlock()
+transpose(retvals)
+reaper.Undo_EndBlock("Transpose MIDI", -1)
+reaper.UpdateArrange()
 
