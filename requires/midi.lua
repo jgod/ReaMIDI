@@ -206,6 +206,15 @@ function selectEvent(e,select)
 end
 
 
+function deleteNotes(notes)
+  local n
+  for i=#notes,1,-1 do
+    n=notes[i]
+    reaper.MIDI_DeleteNote(n.tk, n.idx)
+  end
+end
+
+
 function createItem(current_take, new_track, events)
   if #events==0 then DBG("No notes") return end
   local it=reaper.GetMediaItemTake_Item(current_take)
