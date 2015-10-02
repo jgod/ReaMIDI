@@ -11,6 +11,9 @@ _DEF_MIDI_=true
 dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\class.lua")
 dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\target.lua")
 
+-- TODO:  14 bit support
+-- 0-31 MSB  32-63 LSB 
+
 
 -- 8 = Note Off
 -- 9 = Note On
@@ -188,7 +191,9 @@ function getEvents(types_tab, takes,sort,selected)
         e_type=t&0xF0 
         if e_type==types.cc then
           DBG("isCC")
+          -- check for 14 bit here
           ok,sel,mute,startpos,chanmsg,chan,msg2,msg3=reaper.MIDI_GetCC(tk,cnt_cc)
+          is14bit=false
           idx=cnt_cc
           cnt_cc=cnt_cc+1
         end
@@ -251,7 +256,7 @@ function getEvents(types_tab, takes,sort,selected)
                       e_type=e_type, track=tr, tk=tk, idx=idx, select=sel, 
                       mute=mute, startpos=startpos, chan=chan,
                       --mostly ccs
-                      chanmsg=chanmsg, msg=msg, msg2=msg2, msg3=msg3, msg_sz=msg_sz,
+                      is14bit=is14bit, chanmsg=chanmsg, msg=msg, msg2=msg2, msg3=msg3, msg_sz=msg_sz,
                       --note specific
                       endpos=endpos, pitch=pitch, vel=vel,ts_num=num,ts_denom=denom,
                       len=len,qn_in_meas=qnpm,
