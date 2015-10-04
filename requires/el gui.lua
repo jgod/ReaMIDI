@@ -71,6 +71,8 @@ LControl = class(
         contr.__is_mouse_in=false
         contr.__is_mouse_down=false
         --contr.state={}
+        contr.colour_edit={0,1,1} --colour for edit highlight
+        contr.edit_mode=false
         contr.colour_fg={0,0,0}
         contr.colour_bg={0,0,1}
         contr.orig_x, contr.orig_y=-1, -1
@@ -80,6 +82,10 @@ LControl = class(
       end  
 )
 
+
+function LControl:setGfxColour(colour)
+  gfx.r,gfx.g,gfx.b=colour[1],colour[2],colour[3]
+end
 
 
 function LControl:setColour(colour, r,g,b)
@@ -106,18 +112,25 @@ function LControl:update(mx, my, m_mod)
    if m_mod&1 > 0 then
      if self.__is_mouse_down then
        if self.last_x ~= mx or self.last_y ~= my then
-         self:onMouseMove(mx, my, m_mod)
+         if self.edit_mode==true then
+           self.x=mx-self.orig_x
+           self.y=my-self.orig_y
+         else
+           self:onMouseMove(mx, my, m_mod)
+         end
        end
      else
        if self.__is_mouse_in then
          self.orig_x, self.orig_y = mx-self.x, my-self.y
          self.__is_mouse_down=true
-         if os.time()-self.__mouse_up_time<0.2 then
-           self:onDoubleClick(mx,my,m_mod)
-           self.__mouse_up_time=1
-           self.__double_clicked=true
-         else
-           self:onMouseDown(mx, my, m_mod)
+         if self.edit_mode==false then
+           if os.time()-self.__mouse_up_time<0.2 then
+             self:onDoubleClick(mx,my,m_mod)
+             self.__mouse_up_time=1
+             self.__double_clicked=true
+           else
+             self:onMouseDown(mx, my, m_mod)
+           end
          end
        end
      end
@@ -151,8 +164,16 @@ function LControl:update(mx, my, m_mod)
      end
    end
    self.last_x, self.last_y = mx, my
+   if self.edit_mode==true then
+     gfx.x, gfx.y=self.x, self.y
+     --self.setGfxColour(self.colour_fg)
+     gfx.r,gfx.g,gfx.b,gfx.a=1,1,0,1
+     gfx.rect(self.x-2,self.y-2,self.w+4,self.h+4,false)
+     gfx.rect(self.x-1,self.y-1,self.w+2,self.h+2,false)
+   end
    self:draw()
 end
+
 
 
 function LControl:isInRect(x,y)

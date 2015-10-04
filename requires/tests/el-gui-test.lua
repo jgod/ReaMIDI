@@ -14,12 +14,25 @@ end
 local script_name="El GUI Test"
 LGUI.state_name="I8bE"..script_name
 
---[[ --uncomment to delete state (for testing)
+---[[ --uncomment to delete state (for testing)
 for i=1,10,1 do
   reaper.DeleteExtState(LGUI.state_name,i,true)
 end
 --]]
+function DBG(str)
+  reaper.ShowConsoleMsg(str.."\n")
+end
 
+
+function goToEditMode()
+  DBG("goToEditMode")
+  for i=1,#LGUI.controls,1 do
+    if i~=2 then
+      LGUI.controls[i].edit_mode=not LGUI.controls[i].edit_mode
+    end
+  end
+end
+  
 
 local editbox
 function init()  
@@ -34,9 +47,9 @@ function init()
                )
   LGUI.addControl(b)
   
-  b1=LButton(nil,nil,
+  b1=LButton(goToEditMode,nil,
                   true,
-                  "Toggle", 100,60,60,25,
+                  "Edit", 100,60,60,25,
                   {0.2,0.2,0.2},
                   {0.8,0.8,0.8},
                   nil
@@ -63,6 +76,7 @@ function init()
   llc:setColour(llc.colour_fg, 0,0,0)
   
   editbox=LEditBox(20,400,500,30,50,50)
+  
   LGUI.addControl(editbox)
 end
 
