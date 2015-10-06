@@ -445,20 +445,36 @@ function LButton:onClick(x,y,m_mod)
   end
 end
 
---[[
-function LButton:onMouseUp(x, y, m_mod)
-  if self:isInRect(x,y) then
-    if self.state==0 then
-      self:setState(1)
-      self:doAction()
-    else
-      self:setState(0)
-      if self.ex_group==nil then
-        self:doAction()
-      end
-    end
-  end
-end--]]
+
+
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+LLabel=class(LControl,
+          function(self,x,y,w,h,label,font,font_sz,colour_txt)
+            LControl.init(self,x,y,w,h)
+            self.font=font
+            self.font_sz=font_sz
+            self:setText(label)
+            self.colour_txt=colour_txt
+            self:recallState(LGUI.state_name)
+          end
+)
+
+
+function LLabel:setText(txt)
+  gfx.setfont(1,self.font,self.font_sz)
+  self.w=gfx.measurestr(txt)
+  self.label=txt
+end
+
+    
+function LLabel:draw()
+  gfx.r, gfx.g, gfx.b = self:getColour(self.colour_txt)
+  gfx.a=1.0
+  gfx.x,gfx.y=self.x,self.y
+  gfx.setfont(1,self.font, self.font_sz)--, "ub")
+  gfx.printf(self.label)
+end
 
 
 
