@@ -1,5 +1,7 @@
 dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\class.lua")
 dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\pickle.lua")
+dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\strings.lua")
+
 
 LGUI={}
 
@@ -13,22 +15,48 @@ LGUI.position={
 
 
 -- 'static' stuff so '.' not ':'
-LGUI.controlled_idx=nil
+LGUI.controlled_idx=nil 
 LGUI.controls={}
 LGUI.state_name=""
 LGUI.idx=1
 LGUI.clipboard=""
+LGUI.edit_mode=false
+LGUI.states={}
+LGUI.timer=8 --number of periods to wait before doing non time-critical stuff
+LGUI.countdown=LGUI.timer
+LGUI.current_project=reaper.EnumProjects(-1,"")
+
+
+function LGUI.init(name,w,h,dock_state)
+   LGUI.w,LGUI.h=w,h
+   LGUI.script_name=name
+   LGUI.state_name="I8bE"..string.gsub(name,"%s","")
+   gfx.init(name,w,h,dock_state)
+end
+
+
+function LGUI.drawGrid()
+  gfx.r,gfx.g,gfx.b,gfx.a=1,1,1,.3
+  local spacing=10
+  for i=1,LGUI.h/spacing,1 do
+    gfx.x,gfx.y=0,i*spacing
+    gfx.lineto(LGUI.w,i*spacing,1)
+  end
+  for i=1,LGUI.w/spacing,1 do
+    gfx.x,gfx.y=i*spacing,0
+    gfx.lineto(i*spacing,LGUI.h,1)
+  end
+end
 
 
 function LGUI.addControl(control)
   control.idx=LGUI.idx
   LGUI.controls[LGUI.idx]=control
   LGUI.idx=LGUI.idx+1
-  reaper.ShowConsoleMsg(LGUI.idx.."\n")
 end
 
 
-function LGUI.onExit()
+function LGUI.saveStates()
   local controls=LGUI.controls
   for i=1,#controls,1 do
     controls[i]:storeState(LGUI.state_name)
@@ -36,7 +64,16 @@ function LGUI.onExit()
 end
 
 
+function LGUI.recallStates()
+  local controls=LGUI.controls
+  for i=1,#controls,1 do
+    controls[i]:recallState(LGUI.state_name)
+  end
+end
+
+
 function LGUI.process(c,main)
+  if LGUI.edit_mode then LGUI.drawGrid() end
   local controls=LGUI.controls
   if LGUI.controlled_idx~=nil then
     if c>0 then
@@ -52,11 +89,30 @@ function LGUI.process(c,main)
     controls[i]:update(mx,my,mc)
   end
   gfx.update()
+  if LGUI.countdown<=0 then 
+    LGUI.slowProcess()
+  else
+    LGUI.countdown=LGUI.countdown-1
+  end
   if c>=0 and c~=27 then reaper.defer(main) end
 end
 
 
+function LGUI.slowProcess()
+  local cp=reaper.EnumProjects(-1,"")
+  if cp~=LGUI.current_project then
+    LGUI.current_project=cp
+    LGUI.recallStates()
+  end    
+  LGUI.saveStates()
+  LGUI.countdown=LGUI.timer
+end
 
+
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
 -- base class for controls to inherit from
 LControl = class(
       function (contr,x,y,w,h)
@@ -70,8 +126,8 @@ LControl = class(
         contr.__double_clicked=false
         contr.__is_mouse_in=false
         contr.__is_mouse_down=false
-        --contr.state={}
         contr.colour_edit={0,1,1} --colour for edit highlight
+        contr.can_edit=true
         contr.edit_mode=false
         contr.colour_fg={0,0,0}
         contr.colour_bg={0,0,1}
@@ -103,7 +159,7 @@ end
 function LControl:update(mx, my, m_mod)
    --local mx=gfx.mouse_x   local my=gfx.mouse_y   local m_mod=gfx.mouse_cap
    if LGUI.controlled_idx~=nil and LGUI.controlled_idx~=self.idx then
-     self:draw() return
+     self:prepDraw(mx,my) return
    end
    if self.last_x<0 and self.last_y<0 then
       self.last_x, self.last_y = mx, my
@@ -153,7 +209,10 @@ function LControl:update(mx, my, m_mod)
    if in_rect then
      if not self.__is_mouse_in then      
         -- if mouse buttons down on entry, not for this control
-       if (m_mod&1) > 0 then self:draw() return end
+       if (m_mod&1) > 0 then 
+         self:prepDraw(mx,my)
+         return 
+       end
        self.__is_mouse_in=true
        self:onMouseOver(mx, my, m_mod)
      end
@@ -163,17 +222,21 @@ function LControl:update(mx, my, m_mod)
        self:onMouseOut(mx, my, m_mod)
      end
    end
-   self.last_x, self.last_y = mx, my
-   if self.edit_mode==true then
-     gfx.x, gfx.y=self.x, self.y
-     --self.setGfxColour(self.colour_fg)
-     gfx.r,gfx.g,gfx.b,gfx.a=1,1,0,1
-     gfx.rect(self.x-2,self.y-2,self.w+4,self.h+4,false)
-     gfx.rect(self.x-1,self.y-1,self.w+2,self.h+2,false)
-   end
-   self:draw()
+   self:prepDraw(mx,my)
 end
 
+
+function LControl:prepDraw(mx,my)
+  self.last_x, self.last_y = mx, my
+  if self.edit_mode==true then 
+    gfx.x, gfx.y=self.x, self.y
+    --self.setGfxColour(self.colour_fg)
+    gfx.r,gfx.g,gfx.b,gfx.a=1,1,0,1
+    gfx.rect(self.x-2,self.y-2,self.w+4,self.h+4,false)
+    gfx.rect(self.x-1,self.y-1,self.w+2,self.h+2,false)
+  end
+  self:draw()
+end
 
 
 function LControl:isInRect(x,y)
@@ -192,21 +255,35 @@ end
 
 
 function LControl:deleteState(state_name)
-  reaper.DeleteExtState(state_name,self.idx,true)
+  reaper.DeleteProjExtState(0,state_name,tostring(self.idx),true)
 end
 
 
 function LControl:storeState(state_name)
-  reaper.SetExtState(state_name,self.idx,pickle(self:getPickleableState()),false)
+  reaper.SetProjExtState(0,state_name,tostring(self.idx),pickle(self:getPickleableState()),true)
 end
 
+function DBG(str)
+  if str==nil then str="--nil value/string--" end
+  --reaper.ShowConsoleMsg(str.."\n")
+end
 
 function LControl:recallState(state_name)
-  if reaper.HasExtState(state_name,self.idx) then
-    self.state=unpickle(reaper.GetExtState(state_name,self.idx))
+  local ok,found,cnt=true,false,0
+  local key,state
+  while not found and ok do
+    ok,key,state=reaper.EnumProjExtState(0,state_name,cnt)
+    --end
+    if tostring(key)==tostring(self.idx) then 
+      found=true ok=false
+    end 
+    cnt=cnt+1 
+  end
+  if found then
+    self.state=unpickle(state)
     if #self.state==1 then self.state=self.state[1] end
   else
-    reaper.SetExtState(state_name,self.idx,pickle(self:getPickleableState()),false)
+    reaper.SetProjExtState(0,state_name,tostring(self.idx),pickle(self:getPickleableState()),true)
   end
 end
 
@@ -350,6 +427,7 @@ LButton=class(LControl,
         self.colour_bg_active=colour_bg
         self.colour_fg=colour_fg
         self.ex_group=ex_group
+        self.state={"test"}
         self.args=args
         gfx.setfont(1,self.font, 14)
         self.lw,self.lh=gfx.measurestr(self.label)
@@ -488,7 +566,7 @@ LCheckBox=class(LControl,
               self.colour_txt={0,0,0}--0xFFFFFF
               self.fgcol=0x000000
               self.state=false
-              self:recallState(LGUI.state_name)
+              
             end
 )
 
