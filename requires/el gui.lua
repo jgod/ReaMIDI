@@ -541,7 +541,7 @@ LEditBox=class(LControl,
               self.state.text=""
               self.has_focus=false
               self.font=1
-              self.font_sz=14
+              self.font_sz=h-4
               self.fgcol=0x0000FF   self.fgfcol=0x00FF00
               self.bgcol=0xFFFFFF
               self.txtcol=0x000001
@@ -568,7 +568,7 @@ function LEditBox:draw()
   gfx.rect(self.x,self.y,self.w,self.h,true)
   --self:setColor(self.hasfocus and self.fgfcol or self.fgcol)
   gfx.rect(self.x,self.y,self.w,self.h,false)
-  gfx.setfont(self.font) 
+  gfx.setfont(1,self.font,self.font_sz) 
   self:setColor(self.txtcol)
   local w,h=gfx.measurestr(self.state.text)
   local ox,oy=self.x+self.l,self.y+(self.h-h)/2
@@ -599,6 +599,7 @@ end
 function LEditBox:getCaret(x,y)
   local len=string.len(self.state.text)
   for i=1,len do
+    gfx.setfont(1,self.font,self.font_sz)
     w=gfx.measurestr(string.sub(self.state.text,1,i))
     if x < self.x+self.l+w then return i-1 end
   end
@@ -643,7 +644,7 @@ end
 
 function LEditBox:onChar(c)
   reaper.ShowConsoleMsg(DEC_HEX(c).."\n")
-  if c==13 then self:endFocus() return end
+  if c==13 then self:endFocus() return end --enter
   local just_cleared=nil
   if self.sel ~= 0 then
     local sc,ec=self.caret,self.caret+self.sel
