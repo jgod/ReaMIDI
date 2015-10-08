@@ -7,8 +7,14 @@ dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\strings.lua")
 
 
 
-function nth(x)
-  return (nct%x==1) 
+function nth(...)
+  local offs=0
+  local args=table.pack(...)
+  x=args[1]
+  if #args==2 then
+    offs=tonumber(args[2])
+  end
+  return ((nct-offs)%x==1) 
 end
 
 local function eval(str)
@@ -103,7 +109,7 @@ function midiProcess(str, act, final, select_if_true)
     for i=1,#notes,1 do
       nc=nc+1
       n=notes[i]
-      if i>1 and n.startpos>notes[i-1].startpos+tolerance and n.tk==notes[i-1].tk then
+      if i==1 or (i>1 and n.startpos>notes[i-1].startpos+tolerance and n.tk==notes[i-1].tk) then
         nct=nct+1
       end
       nn=reaper.GetTrackMIDINoteName(n.tr_num-1,n.pitch,0)
