@@ -12,16 +12,6 @@ end
 LGUI.init("El GUI Test", 1000, 520, true)
 
 
----[[ --uncomment to delete state (for testing)
-for i=1,10,1 do
-  reaper.DeleteExtState(LGUI.state_name,tostring(i),true)
-end
---]]
-function DBG(str)
-  reaper.ShowConsoleMsg(str.."\n")
-end
-
-
 function goToEditMode()
   LGUI.edit_mode=not LGUI.edit_mode
   for i=1,#LGUI.controls,1 do
@@ -76,8 +66,13 @@ function init()
   
   LGUI.addControl(editbox)
   
+  slider=LSlider(300,300,130,50,"Slider 1")
+  LGUI.addControl(slider)
+  
   label=LLabel(250,100,100,30,"El GUI Testbed","Arial",30,{.2,0.5,0.5})
   LGUI.addControl(label)
+  
+  
 end
 
 

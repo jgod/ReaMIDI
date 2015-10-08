@@ -28,6 +28,7 @@ LGUI.current_project=reaper.EnumProjects(-1,"")
 
 
 function LGUI.init(name,w,h,dock_state)
+   --LGUI.deleteStates()
    LGUI.w,LGUI.h=w,h
    LGUI.script_name=name
    LGUI.state_name="I8bE"..string.gsub(name,"%s","")
@@ -71,6 +72,13 @@ function LGUI.recallStates()
   end
 end
 
+function LGUI.deleteStates()
+  local controls=LGUI.controls
+  for i=1,#controls,1 do
+    controls[i]:deleteState(LGUI.state_name)
+  end
+end
+
 
 function LGUI.process(c,main)
   if LGUI.edit_mode then LGUI.drawGrid() end
@@ -84,9 +92,8 @@ function LGUI.process(c,main)
      reaper.Main_OnCommand(40044,-1) --toggle play (spacebar)
     end
   end
-  local mx,my,mc=gfx.mouse_x,gfx.mouse_y,gfx.mouse_cap
   for i=1,#controls,1 do
-    controls[i]:update(mx,my,mc)
+    controls[i]:update(gfx.mouse_x,gfx.mouse_y,gfx.mouse_cap)
   end
   gfx.update()
   if LGUI.countdown<=0 then 
@@ -99,12 +106,14 @@ end
 
 
 function LGUI.slowProcess()
+  --LGUI.deleteStates()  
   local cp=reaper.EnumProjects(-1,"")
   if cp~=LGUI.current_project then
     LGUI.current_project=cp
     LGUI.recallStates()
-  end    
-  LGUI.saveStates()
+  else 
+    LGUI.saveStates()
+  end
   LGUI.countdown=LGUI.timer
 end
 
@@ -131,6 +140,7 @@ LControl = class(
         contr.edit_mode=false
         contr.colour_fg={0,0,0}
         contr.colour_bg={0,0,1}
+        contr.colour_txt={0,0,0}
         contr.orig_x, contr.orig_y=-1, -1
         contr.last_x, contr.last_y=-1, -1
         --contr.font="Consolas"
@@ -255,7 +265,7 @@ end
 
 
 function LControl:deleteState(state_name)
-  reaper.DeleteProjExtState(0,state_name,tostring(self.idx),true)
+  reaper.SetProjExtState(0,state_name,tostring(self.idx),"",true)
 end
 
 
@@ -565,8 +575,9 @@ LCheckBox=class(LControl,
               self.lw,self.lh=gfx.measurestr(self.label)
               self.colour_txt={0,0,0}--0xFFFFFF
               self.fgcol=0x000000
-              self.state=false
-              
+              self.state={}
+              self.state.check=false
+              self:recallState(LGUI.state_name)
             end
 )
 
@@ -588,7 +599,7 @@ end
 
 
 function LCheckBox:onMouseDown(x, y, m_mod)  
-   self.state=not self.state
+   self.state.check=not self.state.check
 end
 
 
@@ -603,6 +614,58 @@ LComboBox=class(LControl,
               self:recallState(LGUI.state_name)
             end
 )
+
+
+
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+LSlider=class(LControl,
+            function(self,x,y,w,h,label)
+              LControl.init(self,x,y,w,h)
+              self.state={}
+              self.state.label=label
+              self.fc_pos=w/2
+              self.state.val=0.5
+              self.font_sz=18
+              self.hcw=15 --half 'fader' cap width
+              --self:recallState(LGUI.state_name)
+            end
+)
+
+
+function LSlider:draw()
+  gfx.r, gfx.g, gfx.b = self:getColour(self.colour_bg)
+
+  gfx.rect(self.x,self.y,self.w,self.h-self.font_sz,false)
+  
+  gfx.rect(self.x+(self.fc_pos-self.hcw),self.y,30,self.h-self.font_sz,true)
+  
+  self:setGfxColour(self.colour_txt)
+  gfx.x,gfx.y=self.x,self.y+(self.h-self.font_sz)
+  gfx.a=1.0
+  gfx.setfont(1,self.font,self.font_sz)
+  gfx.printf(self.state.label)
+end
+
+
+function LSlider:onMouseDown(mx,my,m_mod)
+  local pos=mx-self.x
+  if pos<self.hcw then pos=self.hcw end
+  if pos>self.w-self.hcw then pos=self.w-self.hcw end
+  self.fc_pos=pos
+  self.state.val=(self.fc_pos-self.hcw)/(self.w-(self.hcw*2))
+  reaper.ShowConsoleMsg("new val:"..self.state.val.."\n")
+end
+
+
+function LSlider:onMouseMove(mx,my,m_mod)
+  local pos=mx-self.x
+  if pos<self.hcw then pos=self.hcw end
+  if pos>self.w-self.hcw then pos=self.w-self.hcw end
+  self.fc_pos=pos
+  self.state.val=(self.fc_pos-self.hcw)/(self.w-(self.hcw*2))
+  reaper.ShowConsoleMsg("new val:"..self.state.val.."\n")
+end
 
 
 
@@ -721,7 +784,7 @@ end
 
 
 function LEditBox:onChar(c)
-  reaper.ShowConsoleMsg(DEC_HEX(c).."\n")
+  --reaper.ShowConsoleMsg(DEC_HEX(c).."\n")
   if c==13 then self:endFocus() return end --enter
   local just_cleared=nil
   if self.sel ~= 0 then
