@@ -1,18 +1,40 @@
+dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\el gui.lua")
 dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\midi-process.lua")
 
 -- MIDI Console for selecting and/or changing notes
 
 -- helpfile in ReaMIDI\docs, type 'h' or 'help' in console to view it
 
-local exit=false
+---[[
 
-function getValues()
-  ok,retvals=""
-  
-  ok, retvals=reaper.GetUserInputs("MIDI Console",1,"Search:Action (h for help)","")
-  if not ok then exit=true end
-  local str=string.lower(retvals)
-  
+
+LGUI.init("MIDI Console", 800, 400, false)
+
+function test(txt)
+  reaper.ShowConsoleMsg("Edit Box: "..txt.."\n")
+  processStr(txt)
+  LGUI.exit_script=true
+end
+
+function init()
+  editbox=LEditBox(20,150,500,20,50,50,true)
+  function editbox:onEnter() test(self.state.text) end
+  LGUI.addControl(editbox)
+end
+
+
+function main() 
+   LGUI.process(gfx.getchar(),main)
+end
+
+local exit=false
+init()
+main()
+--]]
+
+
+function processStr(str)
+  str=string.lower(str)
   if str~="" then
     local sections=str:split(":")
     if #sections==1 then
@@ -44,7 +66,19 @@ function getValues()
 end
 
 
+--[[
+function getValues()
+  ok,retvals=""
+  
+  ok, retvals=reaper.GetUserInputs("MIDI Console",1,"Search:Action (h for help)","")
+  if not ok then exit=true end
+  return ok,retvals
+end
+
+
 reaper.Undo_BeginBlock()
 if exit==false then getValues() end
 reaper.UpdateArrange()
 reaper.Undo_EndBlock("MIDI Console", -1)
+
+--]]
