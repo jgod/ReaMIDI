@@ -3,6 +3,24 @@ dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\pickle.lua")
 dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\strings.lua")
 
 
+function DBG(str)
+  --[[
+  if str==nil then str="--nil value/string--" end
+  if type(str)=="boolean" then
+    if str==true then str="true" else str="false" end
+  end
+  if type(str)=="table" then
+    DBG("Table Contents:")
+    for k,v in pairs(str) do
+      DBG("Key:"..k)
+      DBG(v)
+    end
+  else
+    reaper.ShowConsoleMsg(str.."\n")
+  end
+  --]]
+end
+
 LGUI={}
 
 LGUI.position={
@@ -273,10 +291,7 @@ function LControl:storeState(state_name)
   reaper.SetProjExtState(0,state_name,tostring(self.idx),pickle(self:getPickleableState()),true)
 end
 
-function DBG(str)
-  if str==nil then str="--nil value/string--" end
-  --reaper.ShowConsoleMsg(str.."\n")
-end
+
 
 function LControl:recallState(state_name)
   local ok,found,cnt=true,false,0
