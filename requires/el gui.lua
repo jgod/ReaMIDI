@@ -831,7 +831,9 @@ function LEditBox:onChar(c)
     if sc > ec then sc,ec=ec,sc end
     self.state.text=string.sub(self.state.text,1,sc)..string.sub(self.state.text,ec+1)
     self.sel, self.caret=0,0
-    just_cleared=true
+    if c >= 32 and c <= 125 and string.len(self.state.text) < self.maxlen then
+      self:addChar(c)
+    end
   else
     if c == 0x6C656674 then -- left arrow
       if self.caret > 0 then self.caret=self.caret-1 end
@@ -847,10 +849,15 @@ function LEditBox:onChar(c)
         self.state.text=string.sub(self.state.text,1,self.caret)..string.sub(self.state.text,self.caret+2)
       end
     elseif c >= 32 and c <= 125 and string.len(self.state.text) < self.maxlen then
-      self.state.text=string.format("%s%c%s", 
-            string.sub(self.state.text,1,self.caret), c, string.sub(self.state.text,self.caret+1))
-      self.caret=self.caret+1
+      self:addChar(c)
     end
   end
+end
+
+
+function LEditBox:addChar(c)
+  self.state.text=string.format("%s%c%s", 
+            string.sub(self.state.text,1,self.caret), c, string.sub(self.state.text,self.caret+1))
+  self.caret=self.caret+1
 end
 
