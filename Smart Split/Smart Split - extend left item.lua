@@ -29,5 +29,5 @@ if #its>0 then
       )
   end
 end
-reaper.Undo_EndBlock("Smart Split - extend", -1)
+reaper.Undo_EndBlock("Smart Split - extend left item", -1)
 reaper.UpdateArrange()
