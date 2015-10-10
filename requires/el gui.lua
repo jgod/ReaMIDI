@@ -304,6 +304,8 @@ end
 
 
 -- override these in derived controls
+function LControl:onEnter() end
+
 function LControl:onChar(c) end
 
 function LControl:setState(state) end
@@ -785,32 +787,33 @@ end
 
 function LEditBox:onChar(c)
   --reaper.ShowConsoleMsg(DEC_HEX(c).."\n")
-  if c==13 then self:endFocus() return end --enter
+  if c==13 then self:endFocus()  self:onEnter()  return end --enter
   local just_cleared=nil
   if self.sel ~= 0 then
     local sc,ec=self.caret,self.caret+self.sel
     if sc > ec then sc,ec=ec,sc end
     self.state.text=string.sub(self.state.text,1,sc)..string.sub(self.state.text,ec+1)
-    self.sel=0
+    self.sel, self.caret=0,0
     just_cleared=true
-  end
-  if c == 0x6C656674 then -- left arrow
-    if self.caret > 0 then self.caret=self.caret-1 end
-  elseif c == 0x72676874 then -- right arrow
-    if self.caret < string.len(self.state.text) then self.caret=self.caret+1 end
-  elseif c == 8 and just_cleared==nil then -- backspace
-    if self.caret > 0 then 
-      self.state.text=string.sub(self.state.text,1,self.caret-1)..string.sub(self.state.text,self.caret+1)
-      self.caret=self.caret-1
+  else
+    if c == 0x6C656674 then -- left arrow
+      if self.caret > 0 then self.caret=self.caret-1 end
+    elseif c == 0x72676874 then -- right arrow
+      if self.caret < string.len(self.state.text) then self.caret=self.caret+1 end
+    elseif c == 8 and just_cleared==nil then -- backspace
+      if self.caret > 0 then 
+        self.state.text=string.sub(self.state.text,1,self.caret-1)..string.sub(self.state.text,self.caret+1)
+        self.caret=self.caret-1
+      end
+    elseif c == 0x64656C and just_cleared==nil then -- delete
+      if self.caret < string.len(self.state.text) then
+        self.state.text=string.sub(self.state.text,1,self.caret)..string.sub(self.state.text,self.caret+2)
+      end
+    elseif c >= 32 and c <= 125 and string.len(self.state.text) < self.maxlen then
+      self.state.text=string.format("%s%c%s", 
+            string.sub(self.state.text,1,self.caret), c, string.sub(self.state.text,self.caret+1))
+      self.caret=self.caret+1
     end
-  elseif c == 0x64656C and just_cleared==nil then -- delete
-    if self.caret < string.len(self.state.text) then
-      self.state.text=string.sub(self.state.text,1,self.caret)..string.sub(self.state.text,self.caret+2)
-    end
-  elseif c >= 32 and c <= 125 and string.len(self.state.text) < self.maxlen then
-    self.state.text=string.format("%s%c%s", 
-      string.sub(self.state.text,1,self.caret), c, string.sub(self.state.text,self.caret+1))
-    self.caret=self.caret+1
   end
 end
 
