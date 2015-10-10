@@ -2,16 +2,18 @@
 
 (see [Wiki](https://github.com/Lazzle/ReaMIDI/wiki) for more detailed instructions/help/docs)
 
-These scripts work in Reaper 5 only.  To use them you must put the ReaMIDI folder
-the Scripts folder of your REAPER resource path, which you can easily get to by
-running the action...
+These scripts work in Reaper 5 only.  To use them you need to:
+
+* Download the zip over on the right of the screen
+* Open the zip file and drag n drop the 'ReaMIDI-master' folder found inside into the Scripts folder of your REAPER resource folder
+* Rename the 'ReaMIDI-master' folder to just 'ReaMIDI'
+
+You can easily get to your REAPER resource folder by running the action...
 
 #####Show REAPER resource path in explorer
 
-...from within the program.  Then just drop the ReaMIDI folder in there so that
-the path ends in REAPER\Scripts\ReaMIDI.  You might have to rename the folder
-from ReaMIDI-master to just ReaMIDI.  If it's not exactly that the scripts 
-will not work.
+...from within REAPER.  The path should now end in REAPER\Scripts\ReaMIDI.
+If it's not exactly that the scripts will not work.
 
 You can run most of them either in the arrange view, where they will usually work
 on the active take of selected items, or in the MIDI editor.
