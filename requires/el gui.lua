@@ -624,28 +624,30 @@ LComboBox=class(LControl,
 LSlider=class(LControl,
             function(self,x,y,w,h,label)
               LControl.init(self,x,y,w,h)
+              self.type="slider"
               self.state={}
               self.state.label=label
-              self.fc_pos=w/2
+              self.state.fc_pos=w/2
               self.state.val=0.5
-              self.font_sz=18
+              self.state.font_sz=18
               self.hcw=15 --half 'fader' cap width
-              --self:recallState(LGUI.state_name)
+              self:recallState(LGUI.state_name)
             end
 )
 
 
 function LSlider:draw()
+  local fc_pos=self.state.fc_pos
   gfx.r, gfx.g, gfx.b = self:getColour(self.colour_bg)
-
-  gfx.rect(self.x,self.y,self.w,self.h-self.font_sz,false)
+  local font,font_sz=self.state.font,self.state.font_sz
+  gfx.rect(self.x,self.y,self.w,self.h-font_sz,false)
   
-  gfx.rect(self.x+(self.fc_pos-self.hcw),self.y,30,self.h-self.font_sz,true)
+  gfx.rect(self.x+(fc_pos-self.hcw),self.y,30,self.h-font_sz,true)
   
   self:setGfxColour(self.colour_txt)
-  gfx.x,gfx.y=self.x,self.y+(self.h-self.font_sz)
+  gfx.x,gfx.y=self.x,self.y+(self.h-font_sz)
   gfx.a=1.0
-  gfx.setfont(1,self.font,self.font_sz)
+  gfx.setfont(1,  font,font_sz)
   gfx.printf(self.state.label)
 end
 
@@ -654,8 +656,8 @@ function LSlider:onMouseDown(mx,my,m_mod)
   local pos=mx-self.x
   if pos<self.hcw then pos=self.hcw end
   if pos>self.w-self.hcw then pos=self.w-self.hcw end
-  self.fc_pos=pos
-  self.state.val=(self.fc_pos-self.hcw)/(self.w-(self.hcw*2))
+  self.state.fc_pos=pos
+  self.state.val=(self.state.fc_pos-self.hcw)/(self.w-(self.hcw*2))
   reaper.ShowConsoleMsg("new val:"..self.state.val.."\n")
 end
 
@@ -664,8 +666,8 @@ function LSlider:onMouseMove(mx,my,m_mod)
   local pos=mx-self.x
   if pos<self.hcw then pos=self.hcw end
   if pos>self.w-self.hcw then pos=self.w-self.hcw end
-  self.fc_pos=pos
-  self.state.val=(self.fc_pos-self.hcw)/(self.w-(self.hcw*2))
+  self.state.fc_pos=pos
+  self.state.val=(self.state.fc_pos-self.hcw)/(self.w-(self.hcw*2))
   reaper.ShowConsoleMsg("new val:"..self.state.val.."\n")
 end
 
