@@ -23,6 +23,7 @@ end
   
 
 local editbox
+
 function init()
   b=LButton(nil,nil,
                   false,
@@ -56,14 +57,20 @@ function init()
                       {0.2,0.2,0.2},
                       {0.9,0.9,0.9},
                       {{"Mary",false},{"had",false},{"a",false},
-                      {"little",false},{"lamb",false}} 
+                      {"little",false},{"lamb",false}}
                 )
+  function llc:onDoubleClick(x,y,m_mod)
+    local ok, str=reaper.GetUserInputs("Rename",1,"Name: ","")
+    y=y-self.y
+    local row=math.floor((y-self.margin)/self.row_height)+self.first_vis_row
+    if ok then self.state[row][1]=str end
+  end
+
   LGUI.addControl(llc)
   
   llc:setColour(llc.colour_fg, 0,0,0)
   
   editbox=LEditBox(20,400,500,20,50,50)
-  
   LGUI.addControl(editbox)
   
   slider=LSlider(300,300,130,50,"Slider 1")
@@ -71,23 +78,15 @@ function init()
   
   label=LLabel(250,100,100,30,"El GUI Testbed","Arial",30,{.2,0.5,0.5})
   LGUI.addControl(label)
-  
-  
+  LGUI.process()
 end
 
-
-
-function main() 
-   gfx.x, gfx.y=0,0
-   gfx.r=0xBB/255  gfx.g=0xBF/255   gfx.b=0xBF/255
-   gfx.rect(0,0,780,520,true)
-   LGUI.process(gfx.getchar(),main)
-end
 
 function onExit()
   LGUI.saveStates()
 end
 
 reaper.atexit(onExit)
+
 init()
-main()
+

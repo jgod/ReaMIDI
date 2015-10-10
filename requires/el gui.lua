@@ -43,6 +43,7 @@ LGUI.states={}
 LGUI.timer=8 --number of periods to wait before doing non time-critical stuff
 LGUI.countdown=LGUI.timer
 LGUI.current_project=reaper.EnumProjects(-1,"")
+LGUI.exit_script=false
 
 
 function LGUI.init(name,w,h,dock_state)
@@ -90,6 +91,7 @@ function LGUI.recallStates()
   end
 end
 
+
 function LGUI.deleteStates()
   local controls=LGUI.controls
   for i=1,#controls,1 do
@@ -98,7 +100,11 @@ function LGUI.deleteStates()
 end
 
 
-function LGUI.process(c,main)
+function LGUI.process()
+  local c=gfx.getchar()
+  gfx.x, gfx.y=0,0
+  gfx.r=0xBB/255  gfx.g=0xBF/255   gfx.b=0xBF/255
+  gfx.rect(0,0,LGUI.w,LGUI.h,true)
   if LGUI.edit_mode then LGUI.drawGrid() end
   local controls=LGUI.controls
   if LGUI.controlled_idx~=nil then
@@ -119,7 +125,11 @@ function LGUI.process(c,main)
   else
     LGUI.countdown=LGUI.countdown-1
   end
-  if c>=0 and c~=27 then reaper.defer(main) end
+  if c>=0 and c~=27 and not LGUI.exit_script then 
+    reaper.defer(LGUI.process)
+  else
+    LGUI.atExit()
+  end
 end
 
 
@@ -135,6 +145,10 @@ function LGUI.slowProcess()
   LGUI.countdown=LGUI.timer
 end
 
+
+function LGUI.atExit()
+ --
+end
 
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
@@ -306,7 +320,7 @@ function LControl:recallState(state_name)
   end
   if found then
     self.state=unpickle(state)
-    if #self.state==1 then self.state=self.state[1] end
+    --if #self.state==1 then self.state=self.state[1] end
   else
     reaper.SetProjExtState(0,state_name,tostring(self.idx),pickle(self:getPickleableState()),true)
   end
@@ -561,6 +575,7 @@ LLabel=class(LControl,
             self.font_sz=font_sz
             self:setText(label)
             self.colour_txt=colour_txt
+            self.state.label=label
             self:recallState(LGUI.state_name)
           end
 )
@@ -578,7 +593,7 @@ function LLabel:draw()
   gfx.a=1.0
   gfx.x,gfx.y=self.x,self.y
   gfx.setfont(1,self.font, self.font_sz)--, "ub")
-  gfx.printf(self.label)
+  gfx.printf(self.state.label)
 end
 
 
@@ -601,7 +616,7 @@ LCheckBox=class(LControl,
 
 function LCheckBox:draw()
   gfx.r, gfx.g, gfx.b = self:getColour(self.colour_bg)
-  if self.state then
+  if self.state.check then
     gfx.rect(self.x,self.y,self.h,self.h,false)
     gfx.line(self.x+1,self.y+1,self.x+self.h-1,self.y+self.h-1)
     gfx.line(self.x+1,self.y+self.h-1,self.x+self.h-1,self.y+1)
@@ -691,23 +706,24 @@ end
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 LEditBox=class(LControl,
-            function (self,x,y,w,h,l,maxlen)
+            function (self,x,y,w,h,l,maxlen,hasfocus)
               LControl.init(self,x,y,w,h)
               self.l,self.maxlen=l,maxlen
-              self.caret=0
-              self.sel=0
-              self.curstate=0
+              self.caret, self.sel, self.cursstate=0,0,0
               self.state={}
               self.state.text=""
-              self.has_focus=false
-              self.font=1
-              self.font_sz=h-4
+              self.hasfocus=hasfocus
+              self.font,self.font_sz=1,h-4
               self.fgcol=0x0000FF   self.fgfcol=0x00FF00
               self.bgcol=0xFFFFFF
               self.txtcol=0x000001
               self.curscol=0x000000
               self:recallState(LGUI.state_name)
               if self.state.text==nil then self.state.text="" end
+              if self.hasfocus then 
+                self:selectAll() 
+                LGUI.controlled_idx=self.idx
+              end
             end
 )
 
@@ -781,10 +797,14 @@ end
 
 
 function LEditBox:onDoubleClick(x,y,m_mod)
+  self:selectAll()
+end
+
+
+function LEditBox:selectAll()
   local len=string.len(self.state.text)
   self.caret=len ; self.sel=-len
 end
-
 
 function LEditBox:onMouseMove(x,y,m_mod)
   self.sel=self:getCaret(x,y)-self.caret
