@@ -11,7 +11,7 @@ function uberSplitItem(item, split_pos, catch_early_notes_limit, extend_right, s
   local is_midi=false
   for i=1,reaper.GetMediaItemNumTakes(item),1 do
     tk=reaper.GetMediaItemTake(item,i-1)
-    if reaper.TakeIsMIDI(tk)==true then
+    if tk~=nil and reaper.TakeIsMIDI(tk)==true then
       is_midi=true
       tks[#tks+1]={}
       tks[#tks].tk=tk
