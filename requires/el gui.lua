@@ -4,7 +4,7 @@ dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\strings.lua")
 
 
 function DBG(str)
-  --[[
+  ---[[
   if str==nil then str="--nil value/string--" end
   if type(str)=="boolean" then
     if str==true then str="true" else str="false" end
@@ -218,15 +218,17 @@ function LControl:update(mx, my, m_mod)
          end
        end
      else
-       if self.__is_mouse_in then
+       if in_rect then --self.__is_mouse_in then
          self.orig_x, self.orig_y = mx-self.x, my-self.y
          self.__is_mouse_down=true
+         self.__is_mouse_in=true
          if self.edit_mode==false then
            if os.time()-self.__mouse_up_time<0.2 then
              self:onDoubleClick(mx,my,m_mod)
              self.__mouse_up_time=1
              self.__double_clicked=true
            else
+             DBG("onMouseDown idx:"..self.idx)
              self:onMouseDown(mx, my, m_mod)
            end
          end
@@ -235,10 +237,12 @@ function LControl:update(mx, my, m_mod)
    else
      if self.__is_mouse_down then
        self.__is_mouse_down=false
+       DBG("onMouseUp idx:"..self.idx)
        self:onMouseUp(mx, my, m_mod)
        self.__mouse_up_time=os.time()
        if self.__is_mouse_in then 
          if not self.__double_clicked then
+           DBG("onClick idx:"..self.idx)
            self:onClick(mx, my, m_mod) 
          else
            self.__double_clicked=false
@@ -256,13 +260,16 @@ function LControl:update(mx, my, m_mod)
          return 
        end
        self.__is_mouse_in=true
+       DBG("onMouseOver idx:"..self.idx)
        self:onMouseOver(mx, my, m_mod)
      end
    else
-     self.__is_mouse_in=false
-     if self.__is_mouse_in and not self.__is_mouse_down then       
+     
+     if self.__is_mouse_in and not self.__is_mouse_down then
+       DBG("onMouseOut idx:"..self.idx)   
        self:onMouseOut(mx, my, m_mod)
      end
+     self.__is_mouse_in=false
    end
    self:prepDraw(mx,my)
 end
