@@ -253,7 +253,7 @@ function getEvents(types_tab, takes,sort,selected)
         DBG("Adding event to list")
         
         local event={ --all
-                      e_type=e_type, track=tr, tk=tk, idx=idx, select=sel, 
+                      e_type=e_type, track=tr, tk=tk, idx=idx, sel=sel, 
                       mute=mute, startpos=startpos, chan=chan,
                       --mostly ccs
                       is14bit=is14bit, chanmsg=chanmsg, msg=msg, msg2=msg2, msg3=msg3, msg_sz=msg_sz,
@@ -396,13 +396,8 @@ end
 
 
 function selectEvent(e,select)
-  e.select=select
-  if e.type==types.note then
-    reaper.MIDI_SetNote(e.tk, e.idx,e.select,e.mute,
-      reaper.MIDI_GetPPQPosFromProjQN(e.tk, e.startpos),
-      reaper.MIDI_GetPPQPosFromProjQN(e.tk, e.endpos),e.chan,
-      e.pitch,e.vel,nil,true)
-  end
+  e.sel=select
+  setEvent(e)
 end
 
 

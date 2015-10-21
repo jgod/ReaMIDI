@@ -32,7 +32,7 @@ end
 DBG("---------------------------------------------------")
 local bpos_qn=0
 function beat(...)
-  local tsa=n.ts_denom/4 -- don't adjust tolerance by this to avoid
+  local tsa=e.ts_denom/4 -- don't adjust tolerance by this to avoid
                          -- it being too small when ts_denom>4
                          -- except where range of beats is supplied
   local tol_l=tolerance
@@ -46,30 +46,29 @@ function beat(...)
       tol_r=(v/tsa)
     end
   end
-  bpos_qn=n.meas_startpos+(x-1)/tsa
+  bpos_qn=e.meas_startpos+(x-1)/tsa
     -- range extends left beyond measure start
   if x-tol_l<=1 then
     DBG("Poss early notes in prev measure")
     -- CHECK qn vs beats for different time sigs here too!!!
-    if ((n.startpos-n.meas_startpos)>n.qn_in_meas-math.abs(x-1-tol_l)) then
+    if ((e.startpos-e.meas_startpos)>e.qn_in_meas-math.abs(x-1-tol_l)) then
       DBG("Early beat before bar")
       return true
     end
   end
   
-  return (((n.startpos-bpos_qn)<tol_r) and 
-            (bpos_qn-n.startpos)<tol_l)
+  return (((e.startpos-bpos_qn)<tol_r) and 
+            (bpos_qn-e.startpos)<tol_l)
 end
 
 
 function qn(x)
   if x<(0+tolerance) then
-    return (math.abs(n.startpos-n.meas_startpos)<tolerance or 
-                math.abs(n.startpos-n.meas_startpos)>n.qn_in_meas-tolerance)
+    return (math.abs(e.startpos-e.meas_startpos)<tolerance or 
+                math.abs(e.startpos-e.meas_startpos)>n.qn_in_meas-tolerance)
   else
-   
-    return (n.startpos-(n.meas_startpos+(x)))<tolerance and
-                 ((n.meas_startpos+(x))-n.startpos<tolerance)
+    return (e.startpos-(e.meas_startpos+(x)))<tolerance and
+                 ((e.meas_startpos+(x))-e.startpos<tolerance)
   end 
 end
 
@@ -99,68 +98,59 @@ tolerance=0.07 -- in quarter notes
 p, c, v, l, tsn, tsd, ts, e2n=nil 
 nn=""
 all=true
-nc=0
-n={}
-nct=0 --note count time dependant
-function midiProcess(str, act, final, select_if_true)
-  local target,notes=getTargetNotes(false, false)
-  -- see midi.lua for available note parameters
+ec=0
+e={}
+ect=0 --note count time dependant
+function eventProcess(str, act, final, select_if_true)
+  local target,events=getTargetEvents(false, false)
+  -- see midi.lua for available event parameters
   local cnt=0
   e2n=false
-  if #notes>0 then
+  if #events>0 then
     local last_tk
-    local tk_notes={}
-    if #notes>0 then last_tk=notes[1].tk end
-    for i=1,#notes,1 do
-      nc=nc+1
-      n=notes[i]
-      if i==1 or (i>1 and n.startpos>notes[i-1].startpos+tolerance and n.tk==notes[i-1].tk) then
-        nct=nct+1
+    local tk_events={}
+    if #events>0 then last_tk=events[1].tk end
+    for i=1,#events,1 do
+      ec=ec+1
+      e=events[i]
+      if i==1 or (i>1 and e.startpos>events[i-1].startpos+tolerance and e.tk==events[i-1].tk) then
+        ect=ect+1
       end
-      nn=reaper.GetTrackMIDINoteName(n.tr_num-1,n.pitch,0)
-      if nn==nil then nn="" else nn=string.lower(nn) end
-      p=n.pitch  c=n.chan+1  v=n.vel  l=n.len  tsn=n.ts_num   tsd=n.ts_denom
-      ts=tostring(n.ts_num).."/"..tostring(n.ts_denom)
+      --nn=reaper.GetTrackMIDINoteName(n.tr_num-1,n.pitch,0)
+      --if nn==nil then nn="" else nn=string.lower(nn) end
+      --p=n.pitch  c=n.chan+1  v=n.vel  l=n.len  tsn=n.ts_num   tsd=n.ts_denom
+      e.ts=tostring(e.ts_num).."/"..tostring(e.ts_denom)
       if eval(str) then
         if act~="" then
           process(act)
           -- setting channel only seems to work reliably when MIDI editor
           -- is set to all channels
-          n.pitch=lim(p,0,127)   n.chan=lim(c-1,0,15)   n.vel=math.floor(lim(v,0,127))  
-          n.len=l  n.endpos=n.startpos+l n.sel=true
-          tk_notes[#tk_notes+1]=n
+          -- if select_if_true then selectEvent(e,true) end
+          tk_events[#tk_events+1]=e
         else
-          if select_if_true then selectEvent(n,true) end
+          if select_if_true then selectEvent(e,true) end
         end
         cnt=cnt+1
       else
-        if select_if_true then selectEvent(n,false) end
+        if select_if_true then selectEvent(e,false) end
       end
       e2n=not e2n
-      if n.tk~=last_tk then
-        if #tk_notes>0 then 
-          if run_legato==true then 
-            legato(tk_notes,false,false) 
-          else
-            setNotes(tk_notes)
-          end
+      if e.tk~=last_tk then
+        if #tk_events>0 then 
+          setEvents(tk_events)
         end
-        tk_notes={}
+        tk_events={}
         reaper.MIDI_Sort(last_tk) 
       end
-      last_tk=n.tk
+      last_tk=e.tk
     end
-    if #tk_notes>0 then 
-      if run_legato==true then 
-        legato(tk_notes,false,false)
-      else
-        setNotes(tk_notes) 
-        reaper.MIDI_Sort(tk_notes[1].tk) 
-      end
+    if #tk_events>0 then 
+      setEvents(tk_events) 
+      reaper.MIDI_Sort(tk_events[1].tk) 
     end
-    reaper.TrackCtl_SetToolTip(tostring(cnt).." note(s) filtered/processed", 800,2, true)
+    reaper.TrackCtl_SetToolTip(tostring(cnt).." event(s) filtered/processed", 800,2, true)
   else
-    reaper.TrackCtl_SetToolTip("No target notes (need selected, active MIDI take(s) or active MIDI editor)", 800,2, true)
+    reaper.TrackCtl_SetToolTip("No target events (need selected, active MIDI take(s) or active MIDI editor)", 800,2, true)
   end
 end
 
