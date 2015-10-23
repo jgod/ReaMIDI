@@ -836,10 +836,18 @@ function LEditBox:onChar(c)
   if self.sel ~= 0 then
     local sc,ec=self.caret,self.caret+self.sel
     if sc > ec then sc,ec=ec,sc end
-    self.state.text=string.sub(self.state.text,1,sc)..string.sub(self.state.text,ec+1)
-    self.sel, self.caret=0,0
-    if c >= 32 and c <= 125 and string.len(self.state.text) < self.maxlen then
-      self:addChar(c)
+    if c == 0x6C656674 then -- left arrow
+      self.sel=0
+      self.caret=sc
+    elseif c == 0x72676874 then -- right arrow
+      self.caret=ec
+      self.sel=0
+    else
+      self.state.text=string.sub(self.state.text,1,sc)..string.sub(self.state.text,ec+1)
+      self.sel, self.caret=0,sc
+      if c >= 32 and c <= 125 and string.len(self.state.text) < self.maxlen then
+        self:addChar(c)
+      end
     end
   else
     if c == 0x6C656674 then -- left arrow
