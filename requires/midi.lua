@@ -395,6 +395,15 @@ function setNotes(notes)
 end
 
 
+-- get bunch of handy stuff, all in QN
+function getProjectInfo()
+  local startTS, endTS=reaper.GetSet_LoopTimeRange(nil, nil, nil, nil, nil)
+  startTS, endTS=reaper.TimeMap2_timeToQN(0, startTS),
+                 reaper.TimeMap2_timeToQN(0, endTS)
+  return getCursorPositionQN(),startTS,endTS
+end
+
+
 function getCursorPositionQN()
   local tpos=reaper.GetCursorPosition()
   local cpqn=reaper.TimeMap2_timeToQN(0,tpos)
