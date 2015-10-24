@@ -196,22 +196,24 @@ function getEvents(types_tab, takes,sort,selected)
         e_type=t&0xF0 
         if e_type==types.cc then
           DBG("isCC")
-          -- check for 14 bit here
-          ok,sel,mute,startpos,chanmsg,chan,msg2,msg3=reaper.MIDI_GetCC(tk,cnt_cc)
-          is14bit=false
-          idx=cnt_cc
-          cnt_cc=cnt_cc+1
-        end
+          ---[[ check for 14 bit here
+          if cnt_cc>0 and lastcc==thiscc and 1~=1 then --.msg2-22 then
+            --lastcc.is14bit=true
+            --change last value to 14bit
+            ok=false
+          else
+            ok,sel,mute,startpos,chanmsg,chan,msg2,msg3=reaper.MIDI_GetCC(tk,cnt_cc)
+            idx=cnt_cc
+            cnt_cc=cnt_cc+1
+          end
         
-        if e_type==types.pitchbend then
+        elseif e_type==types.pitchbend then
           DBG("isPB")
           DBG("Pitchbend  msg2: "..tonumber(t2).."  msg3: "..tonumber(t3))
           amount=bit_7to14(tonumber(t3),tonumber(t2))
           DBG("14 bit: ".. amount)
-          --
-        end
-        
-        if e_type==types.noteon then
+          
+        elseif e_type==types.noteon then
           DBG("isNoteOn")
           e_type=types.note
           ok, sel, mute, startpos, endpos, chan, pitch, vel=reaper.MIDI_GetNote(tk, cnt_n)
