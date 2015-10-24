@@ -118,6 +118,11 @@ function setEvent(evt)
     return
   end
   if evt.e_type==types.note then 
+    if evt.msg2~=nil then 
+      evt.pitch=evt.msg2
+    elseif evt.msg3~=nil then 
+      evt.vel=evt.msg3 
+   end
     reaper.MIDI_SetNote(evt.tk, evt.idx,evt.sel,evt.mute,
       reaper.MIDI_GetPPQPosFromProjQN(evt.tk, evt.startpos),
       reaper.MIDI_GetPPQPosFromProjQN(evt.tk, evt.startpos+evt.len),evt.chan,
@@ -170,12 +175,12 @@ function getEvents(types_tab, takes,sort,selected)
     local msg_sz=""
     local msg=""
     --CCs
-    local chanmsg,chan,msg2,msg3, idx
+    
     --notes
     local endpos,pitch,vel
     local ok, sel, mute, startpos, msg, msg_sz=reaper.MIDI_GetEvt(tk, cnt_e, true, true,1, msg)
     while ok do
-      
+      local chanmsg,chan,msg2,msg3,idx=nil,nil,nil,nil,nil
       idx=cnt_e
       DBG("Length of msg: "..string.len(msg))
       DBG(msg)
