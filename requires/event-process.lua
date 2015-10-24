@@ -14,7 +14,7 @@ function nth(...)
   if #args==2 then
     offs=tonumber(args[2])
   end
-  return ((nct-offs)%x==1) 
+  return ((ect-offs)%x==1) 
 end
 
 
@@ -99,8 +99,7 @@ p, c, v, l, tsn, tsd, ts, e2n=nil
 nn=""
 all=true
 ec=0
-e={}
-ect=0 --note count time dependant
+ect=0 --event count time dependant
 function eventProcess(str, act, final, select_if_true)
   local target,events=getTargetEvents(false, false)
   -- see midi.lua for available event parameters
@@ -112,6 +111,7 @@ function eventProcess(str, act, final, select_if_true)
     if #events>0 then last_tk=events[1].tk end
     for i=1,#events,1 do
       ec=ec+1
+      e={}
       e=events[i]
       if i==1 or (i>1 and e.startpos>events[i-1].startpos+tolerance and e.tk==events[i-1].tk) then
         ect=ect+1
@@ -150,8 +150,9 @@ function eventProcess(str, act, final, select_if_true)
     end
     reaper.TrackCtl_SetToolTip(tostring(cnt).." event(s) filtered/processed", 800,2, true)
   else
-    reaper.TrackCtl_SetToolTip("No target events (need selected, active MIDI take(s) or active MIDI editor)", 800,2, true)
+    reaper.TrackCtl_SetToolTip("No target events (need selected MIDI take/item(s) or active MIDI editor)", 800,2, true)
   end
+  reaper.UpdateArrange()
 end
 
 

@@ -10,7 +10,7 @@ dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\event-process.lu
 
 LGUI.init("Event Console", 820, 150, false)
 
-function test(txt)
+function execute(txt)
   --reaper.ShowConsoleMsg("Edit Box: "..txt.."\n")
   reaper.Undo_BeginBlock()
   processStr(txt)
@@ -21,7 +21,7 @@ end
 
 function init()
   editbox=LEditBox(20,65,780,20,20,100,true)
-  function editbox:onEnter() test(self.state.text) end
+  function editbox:onEnter() execute(self.state.text) end
   LGUI.addControl(editbox)
 end
 
@@ -46,7 +46,7 @@ function processStr(str)
         eventProcess(str,"","",true)
       else
         if str=="h" or str=="help" then
-          os.execute(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\docs\\help.html")
+          os.execute(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\docs\\event console.html")
         else
           eventProcess(str,"","",true)
         end
@@ -67,22 +67,3 @@ function processStr(str)
     exit=true 
   end
 end
-
-
---[[
-function getValues()
-  ok,retvals=""
-  
-  ok, retvals=reaper.GetUserInputs("MIDI Note Console",1,"Search:Action (h for help)","")
-  if not ok then exit=true end
-  processStr(retvals)
-  return ok,retvals
-end
-
-
-reaper.Undo_BeginBlock()
-if exit==false then getValues() end
-reaper.UpdateArrange()
-reaper.Undo_EndBlock("MIDI Console", -1)
-
---]]
