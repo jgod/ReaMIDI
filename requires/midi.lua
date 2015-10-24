@@ -108,7 +108,6 @@ function bytesToString(bytes)
 end
 
 
-
 function setEvent(evt)
   local m=math
   if evt.e_type==types.cc then
@@ -221,10 +220,9 @@ function getEvents(types_tab, takes,sort,selected)
           cnt_n=cnt_n+1
           endpos=reaper.MIDI_GetProjQNFromPPQPos(tk, endpos)
         end
-      end
       
       --text and sysex events here
-      if e_type==0xF0 or (t>0 and t<=7) then
+      elseif e_type==0xF0 or (t>0 and t<=7) then
         DBG("isTextorSYSex")
         if t>0 and t<=7 then e_type=t end
         if t==0xF0 then e_type=types.sysex end
@@ -240,12 +238,11 @@ function getEvents(types_tab, takes,sort,selected)
       if endpos~=nil then len=endpos-startpos end
       local meas, meas_startpos, meas_end=reaper.TimeMap_QNToMeasures(0,startpos)
       
-      -- BUG?  Should we have to take 1 away to get correct time sig?
+      -- need to take -1 away from measure here for some reason
       local startpos_secs, _,_,num,denom,tempo=reaper.TimeMap_GetMeasureInfo(0, meas-1)
       local qnpm=num/(denom/4)
       
-      -- *Probably don't do this*: change time-sig to next measure if note starts really close to it
-      -- TODO:  have a bigger think about actual placement and intended, musical placement
+      --
       if meas_tolerance~=nil then
         if meas_end-startpos<meas_tolerance then
           local _,_,_,n,d,_=reaper.TimeMap_GetMeasureInfo(0, meas-1+1)  -- ^^ reminder in case of bug ^^
@@ -256,12 +253,14 @@ function getEvents(types_tab, takes,sort,selected)
       tr=reaper.GetMediaItemTake_Track(tk)
       tr_num=reaper.GetMediaTrackInfo_Value(tr, "IP_TRACKNUMBER")
       
-      if selected==false or (selected==true and sel==true) then 
+      if ok and selected==false or (selected==true and sel==true) then 
         DBG("Adding event to list")
         
-        local event={ --all
+        local event={}
+        event={       --all
                       e_type=e_type, track=tr, tk=tk, idx=idx, sel=sel, 
                       mute=mute, startpos=startpos, chan=chan,
+                      meas_startpos=meas_startpos,
                       --mostly ccs
                       is14bit=is14bit, chanmsg=chanmsg, msg=msg, msg2=msg2, msg3=msg3, msg_sz=msg_sz,
                       --note specific
@@ -273,6 +272,7 @@ function getEvents(types_tab, takes,sort,selected)
                       amount=amount}
                       
         midi[#midi+1]=event
+        --event={}
       end
       cnt_e=cnt_e+1
       ok, sel, mute, startpos, msg, msg_sz=reaper.MIDI_GetEvt(tk, cnt_e, true, true,1, msg)
