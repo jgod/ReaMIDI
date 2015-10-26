@@ -8,7 +8,7 @@ dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\midi-process.lua
 ---[[
 
 
-LGUI.init("MIDI Note Console", 800, 400, false)
+LGUI.init("MIDI Note Console", 800, 100, false)
 
 function test(txt)
   --reaper.ShowConsoleMsg("Edit Box: "..txt.."\n")
@@ -18,8 +18,9 @@ function test(txt)
   LGUI.exit_script=true
 end
 
+
 function init()
-  editbox=LEditBox(20,150,500,20,50,50,true)
+  editbox=LEditBox(20,40,780,20,20,100,true)
   function editbox:onEnter() test(self.state.text) end
   LGUI.addControl(editbox)
 end
@@ -56,7 +57,7 @@ function processStr(str)
       if sections[2]:find('^[cmd]+$')==nil then -- 2 sections, but second is really third - [c]opy/[m]ove/[d]elete command
         midiProcess(sections[1],sections[2],"",true)
       else
-        midiProcess(sections[1],"",sections[2],"",true)
+        midiProcess(sections[1],"",sections[2],true)
       end
     end
     if #sections==3 then
@@ -66,22 +67,3 @@ function processStr(str)
     exit=true 
   end
 end
-
-
---[[
-function getValues()
-  ok,retvals=""
-  
-  ok, retvals=reaper.GetUserInputs("MIDI Note Console",1,"Search:Action (h for help)","")
-  if not ok then exit=true end
-  processStr(retvals)
-  return ok,retvals
-end
-
-
-reaper.Undo_BeginBlock()
-if exit==false then getValues() end
-reaper.UpdateArrange()
-reaper.Undo_EndBlock("MIDI Console", -1)
-
---]]

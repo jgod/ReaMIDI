@@ -20,7 +20,7 @@ end
 
 
 function init()
-  editbox=LEditBox(20,65,780,20,20,100,true)
+  editbox=LEditBox(20,40,780,20,20,100,true)
   function editbox:onEnter() execute(self.state.text) end
   LGUI.addControl(editbox)
 end
