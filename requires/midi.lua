@@ -119,16 +119,17 @@ function setEvent(evt)
   if evt.e_type==types.note then 
     if evt.msg2~=nil then 
       evt.pitch=evt.msg2
-    elseif evt.msg3~=nil then 
+    end
+    if evt.msg3~=nil then 
       evt.vel=evt.msg3 
-   end
+    end
     reaper.MIDI_SetNote(evt.tk, evt.idx,evt.sel,evt.mute,
-      reaper.MIDI_GetPPQPosFromProjQN(evt.tk, evt.startpos),
-      reaper.MIDI_GetPPQPosFromProjQN(evt.tk, evt.startpos+evt.len),evt.chan,
-      m.floor(evt.pitch),m.floor(evt.vel),nil)
-    return
+       reaper.MIDI_GetPPQPosFromProjQN(evt.tk, evt.startpos),
+       reaper.MIDI_GetPPQPosFromProjQN(evt.tk, evt.startpos+evt.len),evt.chan,
+       m.floor(evt.pitch),m.floor(evt.vel),nil)
+     return
    end
-   if evt.e_type==types.sysex or evt.e_type>0 and evt.e_type<=7 then
+   if evt.e_type==types.sysex or (evt.t_type~=nil and (evt.e_type>0 and evt.e_type<=7)) then
      reaper.MIDI_SetTextSysexEvt(evt.tk,evt.idx,evt.sel,evt.mute,
         reaper.MIDI_GetPPQPosFromProjQN(evt.tk, evt.startpos),
         nil, evt.str, true)
@@ -411,9 +412,9 @@ function getCursorPositionQN()
 end
 
 
-function selectEvent(e,select)
-  e.sel=select
-  setEvent(e)
+function selectEvent(evt,select)
+  evt.sel=select
+  setEvent(evt)
 end
 
 
@@ -427,7 +428,7 @@ end
 
 
 function createItem(current_take, new_track, events)
-  if #events==0 then DBG("No notes") return end
+  if #events==0 then DBG("No events") return end
   local it=reaper.GetMediaItemTake_Item(current_take)
   local pos=reaper.GetMediaItemInfo_Value(it, "D_POSITION")
   local end_pos=pos+reaper.GetMediaItemInfo_Value(it, "D_LENGTH")
