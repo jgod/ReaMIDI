@@ -107,11 +107,25 @@ function LGUI.process()
   gfx.rect(0,0,LGUI.w,LGUI.h,true)
   if LGUI.edit_mode then LGUI.drawGrid() end
   local controls=LGUI.controls
-  if LGUI.controlled_idx~=nil then
+  --tab
+  if c==9 then
+    --if shift is pressed?
+    if LGUI.controlled_idx==nil or LGUI.controlled_idx==#controls then
+      if LGUI.controlled_idx==#controls then
+        controls[#controls].has_focus=false
+      end
+      LGUI.controlled_idx=1
+      controls[LGUI.controlled_idx].has_focus=true
+    else
+      controls[LGUI.controlled_idx].has_focus=false
+      LGUI.controlled_idx=LGUI.controlled_idx+1
+      controls[LGUI.controlled_idx].has_focus=true
+    end
+  elseif LGUI.controlled_idx~=nil then
     if c>0 then
       controls[LGUI.controlled_idx]:onChar(c)
     end
-  else
+  else 
     if c==32 then
      reaper.Main_OnCommand(40044,-1) --toggle play (spacebar)
     end
@@ -170,6 +184,9 @@ LControl = class(
         contr.colour_edit={0,1,1} --colour for edit highlight
         contr.can_edit=true
         contr.edit_mode=false
+        --keyboard focus
+        contr.can_focus=true
+        contr.has_focus=false
         contr.colour_fg={0,0,0}
         contr.colour_bg={0,0,1}
         contr.colour_txt={0,0,0}
@@ -198,11 +215,20 @@ function LControl:getColour(colour)
 end
 
 
+function LControl:takeFocusControl()
+  if LGUI.controlled_idx~=nil then
+    LGUI.controls[LGUI.controlled_idx].has_focus=false
+  end
+  LGUI.controlled_idx=self.idx
+  LGUI.controls[LGUI.controlled_idx].has_focus=true
+end
+
+
 function LControl:update(mx, my, m_mod)
    --local mx=gfx.mouse_x   local my=gfx.mouse_y   local m_mod=gfx.mouse_cap
-   if LGUI.controlled_idx~=nil and LGUI.controlled_idx~=self.idx then
-     self:prepDraw(mx,my) return
-   end
+   --if LGUI.controlled_idx~=nil and LGUI.controlled_idx~=self.idx then
+   --  self:prepDraw(mx,my) return
+   --end
    if self.last_x<0 and self.last_y<0 then
       self.last_x, self.last_y = mx, my
    end
@@ -229,6 +255,7 @@ function LControl:update(mx, my, m_mod)
              self.__double_clicked=true
            else
              DBG("onMouseDown idx:"..self.idx)
+             self:takeFocusControl()
              self:onMouseDown(mx, my, m_mod)
            end
          end
@@ -277,12 +304,13 @@ end
 
 function LControl:prepDraw(mx,my)
   self.last_x, self.last_y = mx, my
-  if self.edit_mode==true then 
+  if self.edit_mode==true or LGUI.controlled_idx==self.idx then 
     gfx.x, gfx.y=self.x, self.y
     --self.setGfxColour(self.colour_fg)
-    gfx.r,gfx.g,gfx.b,gfx.a=1,1,0,1
+    gfx.r,gfx.g,gfx.b,gfx.a=0.1,0.1,1,0.24
     gfx.rect(self.x-2,self.y-2,self.w+4,self.h+4,false)
     gfx.rect(self.x-1,self.y-1,self.w+2,self.h+2,false)
+    gfx.a=1 --reset for later
   end
   self:draw()
 end
@@ -311,7 +339,6 @@ end
 function LControl:storeState(state_name)
   reaper.SetProjExtState(0,state_name,tostring(self.idx),pickle(self:getPickleableState()),true)
 end
-
 
 
 function LControl:recallState(state_name)
@@ -623,6 +650,7 @@ LCheckBox=class(LControl,
 
 function LCheckBox:draw()
   gfx.r, gfx.g, gfx.b = self:getColour(self.colour_bg)
+  gfx.a=1
   if self.state.check then
     gfx.rect(self.x,self.y,self.h,self.h,false)
     gfx.line(self.x+1,self.y+1,self.x+self.h-1,self.y+self.h-1)
@@ -713,13 +741,13 @@ end
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 LEditBox=class(LControl,
-            function (self,x,y,w,h,l,maxlen,hasfocus)
+            function (self,x,y,w,h,l,maxlen,has_focus)
               LControl.init(self,x,y,w,h)
               self.l,self.maxlen=l,maxlen
               self.caret, self.sel, self.cursstate=0,0,0
               self.state={}
               self.state.text=""
-              self.hasfocus=hasfocus
+              self.has_focus=has_focus
               self.font,self.font_sz=1,h-4
               self.fgcol=0x0000FF   self.fgfcol=0x00FF00
               self.bgcol=0xFFFFFF
@@ -736,7 +764,7 @@ LEditBox=class(LControl,
 
 
 function LEditBox:endFocus()
-  self.hasfocus=false
+  self.has_focus=false
   LGUI.controlled_idx=nil
 end
 
@@ -768,7 +796,7 @@ function LEditBox:draw()
     gfx.x,gfx.y=ox+sx,oy
     gfx.drawstr(string.sub(self.state.text, sc+1, ec))
   end 
-  if self.hasfocus then
+  if self.has_focus then
     if self.cursstate < 8 then   
       w=gfx.measurestr(string.sub(self.state.text, 0, self.caret))    
       self:setColor(self.curscol)
@@ -791,11 +819,11 @@ end
 
 
 function LEditBox:onMouseDown(x,y,m_mod)
-  self.hasfocus=
+  self.has_focus=
     gfx.mouse_x >= self.x and gfx.mouse_x < self.x+self.w and
     gfx.mouse_y >= self.y and gfx.mouse_y < self.y+self.h    
-  if self.hasfocus then
-    LGUI.controlled_idx=self.idx
+  if self.has_focus then
+    --self:takeFocusControl()
     self.caret=self:getCaret(x,y) 
     self.cursstate=0
   end
@@ -812,6 +840,7 @@ function LEditBox:selectAll()
   local len=string.len(self.state.text)
   self.caret=len ; self.sel=-len
 end
+
 
 function LEditBox:onMouseMove(x,y,m_mod)
   self.sel=self:getCaret(x,y)-self.caret
@@ -830,7 +859,7 @@ end
 
 
 function LEditBox:onChar(c)
-  --reaper.ShowConsoleMsg(DEC_HEX(c).."\n")
+  reaper.ShowConsoleMsg(DEC_HEX(c).."\n")
   if c==13 then self:endFocus()  self:onEnter()  return end --enter
   local just_cleared=nil
   if self.sel ~= 0 then

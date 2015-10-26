@@ -70,7 +70,7 @@ function init()
   
   llc:setColour(llc.colour_fg, 0,0,0)
   
-  editbox=LEditBox(20,400,500,20,50,50)
+  editbox=LEditBox(20,400,300,20,50,50,true)
   LGUI.addControl(editbox)
   
   slider=LSlider(300,300,130,50,"Slider 1")
