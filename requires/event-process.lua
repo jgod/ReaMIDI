@@ -95,6 +95,7 @@ end
 
 --need globals for load() to work
 tolerance=0.07 -- in quarter notes
+rand=math.random
 p, c, v, l, tsn, tsd, ts, e2n=nil 
 nn=""
 all=true

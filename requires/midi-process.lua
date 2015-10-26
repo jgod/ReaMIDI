@@ -96,6 +96,7 @@ end
 
 --need globals for load() to work
 tolerance=0.07 -- in quarter notes
+rand=math.random
 p, c, v, l, tsn, tsd, ts, e2n=nil 
 nn=""
 all=true
@@ -122,18 +123,22 @@ function midiProcess(str, act, final, select_if_true)
       p=n.pitch  c=n.chan+1  v=n.vel  l=n.len  tsn=n.ts_num   tsd=n.ts_denom
       ts=tostring(n.ts_num).."/"..tostring(n.ts_denom)
       if eval(str) then
+        if select_if_true then selectEvent(n,true) end
+        n.sel=true
         if act~="" then
           process(act)
           -- setting channel only seems to work reliably when MIDI editor
           -- is set to all channels
           n.pitch=lim(p,0,127)   n.chan=lim(c-1,0,15)   n.vel=math.floor(lim(v,0,127))  
-          n.len=l  n.endpos=n.startpos+l n.sel=true
-          tk_notes[#tk_notes+1]=n
+          n.len=l  n.endpos=n.startpos+l  n.sel=true
+          
         else
           if select_if_true then selectEvent(n,true) end
         end
+        tk_notes[#tk_notes+1]=n
         cnt=cnt+1
       else
+        n.sel=false
         if select_if_true then selectEvent(n,false) end
       end
       e2n=not e2n
@@ -162,6 +167,7 @@ function midiProcess(str, act, final, select_if_true)
   else
     reaper.TrackCtl_SetToolTip("No target notes (need selected, active MIDI take(s) or active MIDI editor)", 800,2, true)
   end
+  reaper.UpdateArrange()
 end
 
 
