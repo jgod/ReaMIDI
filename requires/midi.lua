@@ -333,7 +333,7 @@ function getNotes(takes,sort,selected)
       tr_num=reaper.GetMediaTrackInfo_Value(tr, "IP_TRACKNUMBER")  
       --DBG("tr_num: "..tr_num.."\n") 
       if selected==false or (selected==true and sel==true) then 
-        local note={ type=types.note, tr=tr, tr_num=tr_num, tk=tk, idx=cnt, meas=measure, meas_startpos=meas_startpos,beat=beat, 
+        local note={ e_type=types.note, tr=tr, tr_num=tr_num, tk=tk, idx=cnt, meas=measure, meas_startpos=meas_startpos,beat=beat, 
                       ts_num=num,ts_denom=denom, qn_in_meas=qnpm, select=sel, mute=mute, ostartpos=startpos, startpos=startpos, endpos=endpos, len=endpos-startpos, 
                       pitch=pitch, select=sel, chan=chan, vel=vel }
         midi[#midi+1]=note
