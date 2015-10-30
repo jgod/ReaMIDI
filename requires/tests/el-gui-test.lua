@@ -1,13 +1,5 @@
 dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\el gui.lua")
 
--- override this function to do something unique
-function LListControl:onDoubleClick(x,y,m_mod)
-  local ok, str=reaper.GetUserInputs("Rename",1,"Name: ","")
-  y=y-self.y
-  local row=math.floor((y-self.margin)/self.row_height)+self.first_vis_row
-  if ok then self.state[row][1]=str end
-end
-
 
 LGUI.init("El GUI Test", 1000, 520, true)
 
@@ -25,14 +17,13 @@ end
 local editbox
 
 function init()
-  b=LButton(nil,nil,
+  LGUI.addControl(LButton(nil,nil,
                   false,
                   "Hello", 100,20,60,25,
                   {0.2,0.2,0.2},
                   {0.8,0.8,0.8},
                   nil
-               )
-  LGUI.addControl(b)
+               ))
   
   b1=LButton(goToEditMode,nil,
                   true,
