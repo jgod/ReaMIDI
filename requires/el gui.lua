@@ -108,18 +108,32 @@ function LGUI.process()
   if LGUI.edit_mode then LGUI.drawGrid() end
   local controls=LGUI.controls
   --tab
+  ---[[
   if c==9 then
     --if shift is pressed?
-    if LGUI.controlled_idx==nil or LGUI.controlled_idx==#controls then
+    local shift=(gfx.mouse_cap&8==8)
+    if LGUI.controlled_idx==nil then
+      LGUI.controlled_idx=1
+    elseif shift==false then
       if LGUI.controlled_idx==#controls then
         controls[#controls].has_focus=false
+        LGUI.controlled_idx=1
+        controls[LGUI.controlled_idx].has_focus=true
+      else
+        controls[LGUI.controlled_idx].has_focus=false
+        LGUI.controlled_idx=LGUI.controlled_idx+1
+        controls[LGUI.controlled_idx].has_focus=true
       end
-      LGUI.controlled_idx=1
-      controls[LGUI.controlled_idx].has_focus=true
     else
-      controls[LGUI.controlled_idx].has_focus=false
-      LGUI.controlled_idx=LGUI.controlled_idx+1
-      controls[LGUI.controlled_idx].has_focus=true
+      if LGUI.controlled_idx==1 then
+        controls[1].has_focus=false
+        LGUI.controlled_idx=#controls
+        controls[LGUI.controlled_idx].has_focus=true
+      else
+        controls[LGUI.controlled_idx].has_focus=false
+        LGUI.controlled_idx=LGUI.controlled_idx-1
+        controls[LGUI.controlled_idx].has_focus=true
+      end
     end
   elseif LGUI.controlled_idx~=nil then
     if c>0 then
@@ -246,19 +260,22 @@ function LControl:update(mx, my, m_mod)
      else
        if in_rect then --self.__is_mouse_in then
          self.orig_x, self.orig_y = mx-self.x, my-self.y
-         self.__is_mouse_down=true
-         self.__is_mouse_in=true
+         
          if self.edit_mode==false then
            if os.time()-self.__mouse_up_time<0.2 then
              self:onDoubleClick(mx,my,m_mod)
              self.__mouse_up_time=1
              self.__double_clicked=true
            else
-             DBG("onMouseDown idx:"..self.idx)
-             self:takeFocusControl()
-             self:onMouseDown(mx, my, m_mod)
+             if self.__is_mouse_in==true then
+               DBG("onMouseDown idx:"..self.idx)
+               self:takeFocusControl()
+               self:onMouseDown(mx, my, m_mod)
+             end
            end
          end
+         self.__is_mouse_down=true
+         self.__is_mouse_in=true
        end
      end
    else
@@ -670,6 +687,9 @@ function LCheckBox:onMouseDown(x, y, m_mod)
 end
 
 
+function LCheckBox:onEnter()
+  self.state.check=not self.state.check
+end
 
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
