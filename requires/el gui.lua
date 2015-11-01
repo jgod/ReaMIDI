@@ -137,7 +137,11 @@ function LGUI.process()
     end
   elseif LGUI.controlled_idx~=nil then
     if c>0 then
-      controls[LGUI.controlled_idx]:onChar(c)
+      if c==13 and controls[LGUI.controlled_idx].type~="edit_box" then 
+        controls[LGUI.controlled_idx]:onEnter()
+      else
+        controls[LGUI.controlled_idx]:onChar(c)
+      end
     end
   else 
     if c==32 then
@@ -770,6 +774,7 @@ end
 LEditBox=class(LControl,
             function (self,x,y,w,h,l,maxlen,has_focus)
               LControl.init(self,x,y,w,h)
+              self.type="edit_box"
               self.l,self.maxlen=l,maxlen
               self.caret, self.sel, self.cursstate=0,0,0
               self.state={}
