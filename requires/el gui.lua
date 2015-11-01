@@ -712,10 +712,11 @@ LSlider=class(LControl,
               self.type="slider"
               self.state={}
               self.state.label=label
-              self.state.fc_pos=w/2
+              self.state.fc_pos=w/2 --inital fader cap pos
               self.state.val=0.5
               self.state.font_sz=18
               self.hcw=15 --half 'fader' cap width
+              self.fhxo=0 --fader head x offset
               self:recallState(LGUI.state_name)
             end
 )
@@ -739,16 +740,22 @@ end
 
 function LSlider:onMouseDown(mx,my,m_mod)
   local pos=mx-self.x
-  if pos<self.hcw then pos=self.hcw end
-  if pos>self.w-self.hcw then pos=self.w-self.hcw end
-  self.state.fc_pos=pos
-  self.state.val=(self.state.fc_pos-self.hcw)/(self.w-(self.hcw*2))
+  local fc_pos=self.state.fc_pos
+  if pos>fc_pos-self.hcw and pos<fc_pos+self.hcw then
+    self.fhxo=pos-fc_pos
+  else
+    self.fhxo=0
+    if pos<self.hcw then pos=self.hcw end
+    if pos>self.w-self.hcw then pos=self.w-self.hcw end
+    self.state.fc_pos=pos
+    self.state.val=(self.state.fc_pos-self.hcw)/(self.w-(self.hcw*2))
+  end
   reaper.ShowConsoleMsg("new val:"..self.state.val.."\n")
 end
 
 
 function LSlider:onMouseMove(mx,my,m_mod)
-  local pos=mx-self.x
+  local pos=mx-self.x-self.fhxo
   if pos<self.hcw then pos=self.hcw end
   if pos>self.w-self.hcw then pos=self.w-self.hcw end
   self.state.fc_pos=pos
