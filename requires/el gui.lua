@@ -1,6 +1,6 @@
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\class.lua")
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\pickle.lua")
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\strings.lua")
+dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/class.lua")
+dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/pickle.lua")
+dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/strings.lua")
 
 
 LGUI={}

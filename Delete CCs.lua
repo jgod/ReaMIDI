@@ -1,6 +1,6 @@
 -- Delete CCs in active take of MIDI editor
 -- or selected items in arrange if MIDI editor closed
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\target.lua")
+dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/target.lua")
 
 
 function deleteCCs()

@@ -27,7 +27,7 @@
 -- if anyone wants to use this, remember we can't pickle Lua userdata
 -- ie, any of the Reaper specific pointers to Track, Item, Take n stuff
 
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\pickle.lua")
+dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/pickle.lua")
 
 local cnt=0
 

@@ -2,7 +2,7 @@ if _DEF_SPLIT_MIDI_~=true then
 _DEF_SPLIT_MIDI_=true
 
 
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\midi.lua")
+dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/midi.lua")
 
 function uberSplitItem(item, split_pos, catch_early_notes_limit, extend_right, select_left, select_right)
   --get list of midi takes

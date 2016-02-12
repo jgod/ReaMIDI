@@ -1,4 +1,4 @@
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\midi.lua")
+dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/midi.lua")
 
 
  --from target.lua

@@ -1,4 +1,4 @@
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\el gui.lua")
+dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/el gui.lua")
 
 -- override this function to do something unique
 function LListControl:onDoubleClick(x,y,m_mod)
