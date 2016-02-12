@@ -492,7 +492,7 @@ function LListControl:draw()
   gfx.r, gfx.g, gfx.b = self:getColour(self.colour_bg)
   gfx.a = 1
   --gfx.setfont(1,self.font, self.font_sz)--, "ub")
-  gfx.r, gfx.g, gfx.b = self:getColour(self.colour_fg)
+  --gfx.r, gfx.g, gfx.b = self:getColour(self.colour_fg)
   gfx.x, gfx.y = self.x+self.margin, self.y+self.margin
   
   local inc=1
