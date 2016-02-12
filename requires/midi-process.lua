@@ -1,8 +1,8 @@
 if _DEF_MIDI_PROCESS_~=true then
 _DEF_MIDI_PROCESS_=true
 
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\midi.lua")
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\strings.lua")
+dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/midi.lua")
+dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/strings.lua")
 
 
 

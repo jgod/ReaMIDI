@@ -1,4 +1,4 @@
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\midi-process.lua")
+dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/midi-process.lua")
 
 
 reaper.Undo_BeginBlock()

@@ -1,5 +1,5 @@
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\midi.lua")
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\target.lua")
+dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/midi.lua")
+dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/target.lua")
 
 local target, takes=getTargetTakes() --from target.lua
 

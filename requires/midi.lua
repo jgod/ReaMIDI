@@ -8,8 +8,8 @@ _DEF_MIDI_=true
 --           selected items
 --           all
 
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\class.lua")
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\target.lua")
+dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/class.lua")
+dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/target.lua")
 
 -- TODO:  14 bit support
 -- 0-31 MSB  32-63 LSB 

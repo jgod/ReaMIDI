@@ -1,4 +1,4 @@
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\el gui.lua")
+dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/el gui.lua")
 
 
 LGUI.init("El GUI Test", 1000, 520, true)

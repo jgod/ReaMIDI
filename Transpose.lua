@@ -6,8 +6,8 @@
 -- you can change this by changing 0 on line 24 and 31 to
 -- n.chan for note channel or whatever you like
 
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\midi.lua")
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\strings.lua")
+dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/midi.lua")
+dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/strings.lua")
 
 
 local target, notes=getTargetNotes(false,false)

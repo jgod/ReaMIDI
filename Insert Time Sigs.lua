@@ -19,7 +19,7 @@
 -- 3/4>3,6/8*100 : 4/4>3,3/4 : 3/4>3,6/8*100
 -- add different sections by separating with a colon
 
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\strings.lua")
+dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/strings.lua")
 
 
 function insertTimeSigs()

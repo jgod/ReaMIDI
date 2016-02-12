@@ -1,4 +1,4 @@
-dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\smart-split-item.lua")
+dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/smart-split-item.lua")
 
 local its={}
 local itt
