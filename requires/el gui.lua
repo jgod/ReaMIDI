@@ -44,6 +44,11 @@ LGUI.timer=8 --number of periods to wait before doing non time-critical stuff
 LGUI.countdown=LGUI.timer
 LGUI.current_project=reaper.EnumProjects(-1,"")
 LGUI.exit_script=false
+LGUI.mainFunction=nil
+
+function LGUI.setMainFunction(func)
+  LGUI.mainFunction=func
+end
 
 
 function LGUI.init(name,w,h,dock_state)
@@ -157,6 +162,7 @@ function LGUI.process()
   else
     LGUI.countdown=LGUI.countdown-1
   end
+  if LGUI.mainFunction~=nil then LGUI.mainFunction() end
   if c>=0 and c~=27 and not LGUI.exit_script then 
     reaper.defer(LGUI.process)
   else
