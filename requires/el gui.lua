@@ -578,6 +578,11 @@ function LButton:setState(state)
 end
 
 
+function LButton:getState()
+  return self.state
+end
+
+
 function LButton:onMouseOver(x, y, m_mod)  
    self.alpha=0.9
 end
