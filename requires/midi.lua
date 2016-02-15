@@ -33,6 +33,7 @@ types = {
   lyric=0x05,
   marker=0x06,
   cue_point=0x07,
+  notation=0x0F,
   
   --
   noteoff=0x80,
@@ -129,7 +130,7 @@ function setEvent(evt)
        m.floor(evt.pitch),m.floor(evt.vel),nil)
      return
    end
-   if evt.e_type==types.sysex or (evt.t_type~=nil and (evt.e_type>0 and evt.e_type<=7)) then
+   if evt.e_type==types.sysex or evt.e_type==types.notation or (evt.t_type~=nil and (evt.e_type>0 and evt.e_type<=7)) then
      reaper.MIDI_SetTextSysexEvt(evt.tk,evt.idx,evt.sel,evt.mute,
         reaper.MIDI_GetPPQPosFromProjQN(evt.tk, evt.startpos),
         nil, evt.str, true)
@@ -190,6 +191,7 @@ function getEvents(types_tab, takes,sort,selected)
       DBG(t2)
       local t3=string.byte(msg:sub(3,3))
       DBG(t3)
+      if t==0xFFF then DBG("t=0xFFF ") end
       chan=t&0x0F 
       if t&0xF0>=0x80 then
         DBG("Checking events")
@@ -223,15 +225,16 @@ function getEvents(types_tab, takes,sort,selected)
         end
       
       --text and sysex events here
-      elseif e_type==0xF0 or (t>0 and t<=7) then
+      elseif e_type==0xF0 or t==0x0F or (t>0 and t<=7) then
         DBG("isTextorSYSex")
         if t>0 and t<=7 then e_type=t end
         if t==0xF0 then e_type=types.sysex end
+        if t==0x0F then e_type=types.notation end
         --startpos returning 0 here
         ok, sel, mute, startpos, m_type, str=reaper.MIDI_GetTextSysexEvt(tk, cnt_tsx,
                                 nil, nil, 0, nil, "")
         idx=cnt_tsx
-        cnt_tsx=cnt_tsx+1 
+        cnt_tsx=cnt_tsx+1
       end
       
       startpos=reaper.MIDI_GetProjQNFromPPQPos(tk, startpos)
@@ -256,6 +259,7 @@ function getEvents(types_tab, takes,sort,selected)
       
       if ok and selected==false or (selected==true and sel==true) then 
         DBG("Adding event to list")
+        DBG("type is:"..t)
         
         local event={}
         event={       --all
