@@ -5,7 +5,7 @@ end
 
 
 
-local function findInstrumentIdx(track)
+local function getInstrumentIdx(track)
   --TODO: use whitelist or blacklist or something to 
   --avoid returning VSTi MIDI plugins.
   --reaper-fxfolders.ini uses file paths names
