@@ -1,5 +1,27 @@
 dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/tempo-time-sigs.lua")
 
+-- inserts time signatures at current cursor position (measure)
+
+-- v1.1 - 22 July 2015 - added ':' sections
+
+-- example inputs:
+
+-- 3/4
+-- will enter 3/4 time sig at current tempo at current cursor position (nearest measure)
+
+-- 3/4,6/8
+-- puts 3/4 at current cursor position (nearest measure) and 6/8 at next measure
+
+-- 3/4>3,6/8
+-- 3/4 at current position, 6/8 three measures later.
+
+-- 3/4>3,6/8*200
+-- same as before, but pattern repeated 200 times
+
+-- 3/4>3,6/8*100 : 4/4>3,3/4 : 3/4>3,6/8*100
+-- add different sections by separating with a colon
+
+
 function insertTimeSigs()
   ok,retvals=""
   ok, retvals=reaper.GetUserInputs("Insert time signatures",1,"Enter time sig(s): ","")
