@@ -1,26 +1,4 @@
--- more direct way to enter time signatures
-
--- v1.1 - 22 July 2015 - added ':' sections
-
--- example inputs:
-
--- 3/4
--- will enter 3/4 time sig at current tempo at current cursor position (nearest measure)
-
--- 3/4,6/8
--- puts 3/4 at current cursor position (nearest measure) and 6/8 at next measure
-
--- 3/4>3,6/8
--- 3/4 at current position, 6/8 three measures later.
-
--- 3/4>3,6/8*200
--- same as before, but pattern repeated 200 times
-
--- 3/4>3,6/8*100 : 4/4>3,3/4 : 3/4>3,6/8*100
--- add different sections by separating with a colon
-
-dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/strings.lua")
-
+dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/tempo-time-sigs.lua")
 
 function insertTimeSigs()
   ok,retvals=""
@@ -28,9 +6,10 @@ function insertTimeSigs()
  
   retvals=trimWs(retvals)
   
-  cur_time=reaper.GetCursorPosition()
-  cur_qn=reaper.TimeMap_timeToQN(cur_time)
-  measure=reaper.TimeMap_QNToMeasures(0,cur_qn)
+  local cur_time,cur_qn,measure=getCurrentPositions()
+
+  
+  storeAndRemoveTimeSigsFromCurrentPos(cur_time)
   
   sections=retvals:split(":")
   for i=1,#sections,1 do
@@ -51,11 +30,14 @@ function insertTimeSigs()
       reps=1
     end
     
+    start_measure=measure
+    _, _, _, s_timesig_num, s_timesig_denom, s_tempo=reaper.TimeMap_GetMeasureInfo(0, start_measure)
+    
     for i=1,reps,1 do
       for k, v in pairs(ret_tab) do
-    	local temp={}
-    	temp=v:split(">")
-    	if #temp>1 then measure_skip=math.min(tonumber(temp[2]),500) else measure_skip=1 end
+      local temp={}
+      temp=v:split(">")
+      if #temp>1 then measure_skip=math.min(tonumber(temp[2]),500) else measure_skip=1 end
         local timesig=temp[1]
         timesig=timesig:split("/")
         n=timesig[1]  
@@ -69,13 +51,29 @@ function insertTimeSigs()
     end
   end
   
+  
+ --reaper.TimeMap_GetMeasureInfo(0,measure-1)
+  --set original time sig if different
+  local fts=#tempo_time_markers>0 and tempo_time_markers[#tempo_time_markers] or nil
+  if (n~=timesig_num or d~=timesig_denom) and fts~=nil then
+    DBG("fts.measurepos-"..fts.measurepos)
+    if fts.measurepos>measure-1 then
+      cur_time=reaper.TimeMap_GetMeasureInfo(0,measure-1)
+      
+      --boolean reaper.SetTempoTimeSigMarker(ReaProject proj, integer ptidx, number timepos, integer measurepos, number beatpos,
+                   -- number bpm, integer timesig_num, integer timesig_denom, boolean lineartempo)
+
+      reaper.SetTempoTimeSigMarker(0,-1,-1,start_measure,0,s_tempo,s_timesig_num,s_timesig_denom,false)
+    end
+  end
+  
+  restoreTimeSigsFromCurrentPos(measure-start_measure)
+  
   reaper.UpdateTimeline()
   return true
 end
 
 
-
 reaper.Undo_BeginBlock()
 insertTimeSigs()
 reaper.Undo_EndBlock("Insert Time Sigs", -1)
-
