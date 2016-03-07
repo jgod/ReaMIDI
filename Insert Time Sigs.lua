@@ -75,17 +75,15 @@ function insertTimeSigs()
   
   
  --reaper.TimeMap_GetMeasureInfo(0,measure-1)
-  --set original time sig if different
+  --set original time sig if different and there isn't a time sig change
   local fts=#tempo_time_markers>0 and tempo_time_markers[#tempo_time_markers] or nil
-  if (n~=timesig_num or d~=timesig_denom) and fts~=nil then
+  if (n~=s_timesig_num or d~=s_timesig_denom) and fts~=nil then
     DBG("fts.measurepos-"..fts.measurepos)
-    if fts.measurepos>measure-1 then
-      cur_time=reaper.TimeMap_GetMeasureInfo(0,measure-1)
-      
+    if fts.measurepos>start_measure then
       --boolean reaper.SetTempoTimeSigMarker(ReaProject proj, integer ptidx, number timepos, integer measurepos, number beatpos,
                    -- number bpm, integer timesig_num, integer timesig_denom, boolean lineartempo)
 
-      reaper.SetTempoTimeSigMarker(0,-1,-1,start_measure,0,s_tempo,s_timesig_num,s_timesig_denom,false)
+      reaper.SetTempoTimeSigMarker(0,-1,-1,measure-1,0,s_tempo,s_timesig_num,s_timesig_denom,false)
     end
   end
   
