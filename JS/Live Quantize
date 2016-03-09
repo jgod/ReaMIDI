@@ -1,0 +1,135 @@
+desc:Live Quantize
+
+
+slider1:0<0,3,1{Bar,Beat,1/8th,1/16th}>Quantize to: 
+
+
+//------------------------------------------------------------------------------------------------
+@init 
+Q_116=0.25; Q_18=0.5; Q_14=1; Q_BAR=4;
+
+function setQuantizeSamples()(
+  slider1==0 ? q=Q_BAR;
+  slider1==1 ? q=Q_14;
+  slider1==2 ? q=Q_18;
+  slider1==3 ? q=Q_116;
+);
+
+
+notebuf=0; //start pos of buffer
+nb_width=3; //number of entries per note
+buflen=0; //notes in buffer
+
+function addRemoveNoteFromBuffer(m1,m2)
+( 
+  s = m1&$xF0;
+  c = m1&$xF; // channel
+  n = m2&$xFF;
+  v = (m2&$xFF00)>>8; // velocity
+  
+  init_buflen=buflen;
+  
+  i = -1;
+  while // look for this note|channel already in the buffer
+  (
+    i = i+1;
+    i < buflen && (notebuf[nb_width*i]|0 != n || notebuf[nb_width*i+1]|0 != c);
+        );
+
+    (s == $x90 && v > 0) ? // note-on, add to buffer
+    ( 
+      notebuf[nb_width*i] = n;
+      notebuf[nb_width*i+1] = c;
+      notebuf[nb_width*i+2] = v;
+      i == buflen ? buflen = buflen+1;
+    ) 
+    : // note-off, remove from buffer
+    (
+      is_note_off=1;
+      i < buflen ?
+      (
+         memcpy(notebuf+nb_width*i, notebuf+nb_width*(i+1),
+                      nb_width*(buflen-i-1));  // delete the entry
+         buflen = buflen-1;
+       );
+    );
+    buflen==init_buflen ? -1; //return value for nothing added/removed
+);
+
+
+function sendAndClearNoteBuffer(offs)
+(
+  i=0;
+  loop(buflen,
+    cp=i*nb_width;
+    midisend(floor(offs), $x90|notebuf[cp+1], notebuf[cp], notebuf[cp+2]);
+    i+=1;
+  );
+  buflen=0; 
+);
+
+
+//------------------------------------------------------------------------------------------------
+@slider
+setQuantizeSamples();
+
+
+//------------------------------------------------------------------------------------------------
+@block
+play_state!=last_play_state ? (buflen=0; last_play_state=play_state);
+
+setQuantizeSamples();
+
+beat_sample_pos=beat_position*((srate/tempo)*60);
+
+q==Q_BAR ? ( 
+  whole_bars=floor(beat_position*0.25);
+  next_q_sample_pos=(whole_bars+1)*(((srate/tempo)*60)*4);
+  bar_beat_pos=beat_position - (whole_bars*4); //assumes 4/4 here
+  q_off=bar_beat_pos-(floor(bar_beat_pos/q)); 
+):(
+  bq=beat_position/q;
+  beat_pos_in_whole_q_steps=bq|0;
+  next_q_step=beat_pos_in_whole_q_steps+1;
+  next_q_sample_pos=(next_q_step*(q))*((srate/tempo)*60);
+  q_off=(bq-beat_pos_in_whole_q_steps)*q;
+);
+
+q_sample_pos=beat_position*((srate/tempo)*60);
+
+next_q_sample_pos<q_sample_pos+samplesblock ? 
+( 
+  send_offset=next_q_sample_pos-beat_sample_pos;
+):(
+  send_offset=0;
+);
+ 
+
+while (midirecv(offset,msg1,msg23))
+( 
+  msg1==$x90 || msg1==$x80 && play_state!=0 ?
+  (
+    (q_off>(q*0.5)) ? (
+      offset>send_offset && send_offset>0 ? (
+        sendAndClearNoteBuffer(send_offset);
+      );
+      addRemoveNoteFromBuffer(msg1,msg23)==-1 ? midisend(offset,msg1,msg23);
+    ):( 
+      midisend(offset,msg1,msg23);
+    );   
+  ):(
+    midisend(offset,msg1,msg23);
+  );
+);
+
+
+(send_offset>0) ?
+( 
+  last_send_offset=send_offset;
+  sendAndClearNoteBuffer(offs); 
+);
+
+
+
+
+  

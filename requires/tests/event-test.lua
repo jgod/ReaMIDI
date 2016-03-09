@@ -1,6 +1,5 @@
 dofile(reaper.GetResourcePath().."\\Scripts\\ReaMIDI\\requires\\midi.lua")
 
-_DBG=true
 DBG("Running script")
 DBG("-------------- ")
 
@@ -17,7 +16,9 @@ for i=1,#events,1 do
     setEvent(e)
   end
   if e.e_type==types.note then
+    _DBG=true
     DBG("is a note") 
+    _DBG=false
     e.vel=e.vel*2
     e.len=e.len/2
     setEvent(e)

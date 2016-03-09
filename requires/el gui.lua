@@ -56,7 +56,7 @@ function LGUI.init(name,w,h,dock_state)
    LGUI.w,LGUI.h=w,h
    LGUI.script_name=name
    LGUI.state_name="I8bE"..string.gsub(name,"%s","")
-   gfx.init(name,w,h,dock_state)
+   gfx.init(name,w,h,dock_state,300,300)
 end
 
 

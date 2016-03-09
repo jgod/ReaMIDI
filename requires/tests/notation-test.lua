@@ -17,8 +17,7 @@ for i=1,#events,1 do
      DBG(e.str)
      e.str="#!_Crescendo"
      setEvent(e)
-  end
-  
+  end  
 end
 
 reaper.UpdateArrange()

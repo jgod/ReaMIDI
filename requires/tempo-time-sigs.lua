@@ -5,7 +5,7 @@ _DEF_TEMPO_TIME_=true
 
 dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/strings.lua")
 
-_DBG=false
+_DBG=true
 function DBG(str)
   if _DBG then reaper.ShowConsoleMsg(str==nil and "nil" or str.."\n") end
 end
@@ -38,15 +38,16 @@ function storeAndRemoveTimeSigsFromCurrentPos(cur_time)
 end
 
 
-function restoreTimeSigsFromCurrentPos(measure_offset)
+function restoreTimeSigs(measure_offset,time)
   if #tempo_time_markers>0 then
     for i=#tempo_time_markers,1,-1 do --table in reverse order
       DBG("i="..i)
       local t=tempo_time_markers[i]
       DBG("t.measurepos: "..t.measurepos)
       DBG("measure_offset: "..measure_offset)
-      
-      reaper.SetTempoTimeSigMarker(0, -1, -1, t.measurepos+measure_offset, 0, t.bpm, t.timesig_num, t.timesig_denom, t.lineartempo)
+      if t.timepos>=time then
+        reaper.SetTempoTimeSigMarker(0, -1, -1, t.measurepos+measure_offset, 0, t.bpm, t.timesig_num, t.timesig_denom, t.lineartempo)
+      end
     end
   end
 end
