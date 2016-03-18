@@ -450,7 +450,7 @@ function createItem(current_take, new_track, events)
   local e
   for i=1,#events,1 do
     e=events[i]
-    if e.type==types.note then
+    if e.e_type==types.note then
       reaper.MIDI_InsertNote(tk,false,false,
               reaper.MIDI_GetPPQPosFromProjQN(e.tk, e.startpos),
               reaper.MIDI_GetPPQPosFromProjQN(e.tk, e.endpos),e.chan,
