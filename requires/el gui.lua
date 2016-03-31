@@ -4,7 +4,7 @@ dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/strings.lua")
 
 
 function DBG(str)
-  ---[[
+  --[[
   if str==nil then str="--nil value/string--" end
   if type(str)=="boolean" then
     if str==true then str="true" else str="false" end
@@ -798,7 +798,7 @@ LEditBox=class(LControl,
               self.curscol=0x000000
               self:recallState(LGUI.state_name)
               if self.state.text==nil then self.state.text="" end
-              if self.hasfocus then 
+              if self.has_focus then 
                 self:selectAll() 
                 LGUI.controlled_idx=self.idx
               end
@@ -902,7 +902,7 @@ end
 
 
 function LEditBox:onChar(c)
-  reaper.ShowConsoleMsg(DEC_HEX(c).."\n")
+  --reaper.ShowConsoleMsg(DEC_HEX(c).."\n")
   if c==13 then self:endFocus()  self:onEnter()  return end --enter
   local just_cleared=nil
   if self.sel ~= 0 then
