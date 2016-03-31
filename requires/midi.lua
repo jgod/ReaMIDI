@@ -221,6 +221,7 @@ function getEvents(types_tab, takes,sort,selected)
           ok, sel, mute, startpos, endpos, chan, pitch, vel=reaper.MIDI_GetNote(tk, cnt_n)
           idx=cnt_n
           cnt_n=cnt_n+1
+          endpos_ppq=endpos
           endpos=reaper.MIDI_GetProjQNFromPPQPos(tk, endpos)
         end
       
@@ -236,7 +237,7 @@ function getEvents(types_tab, takes,sort,selected)
         idx=cnt_tsx
         cnt_tsx=cnt_tsx+1
       end
-      
+      startpos_ppq=startpos
       startpos=reaper.MIDI_GetProjQNFromPPQPos(tk, startpos)
       local len
       if endpos~=nil then len=endpos-startpos end
@@ -269,6 +270,7 @@ function getEvents(types_tab, takes,sort,selected)
                       --mostly ccs
                       is14bit=is14bit, chanmsg=chanmsg, msg=msg, msg2=msg2, msg3=msg3, msg_sz=msg_sz,
                       --note specific
+                      startpos_ppq=startpos_ppq, endpos_ppq=endpos_ppq,
                       endpos=endpos, pitch=pitch, vel=vel,ts_num=num,ts_denom=denom,
                       len=len,qn_in_meas=qnpm,
                       --text/sysex
