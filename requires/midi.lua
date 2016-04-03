@@ -223,8 +223,12 @@ function getEvents(types_tab, takes,sort,selected)
           cnt_n=cnt_n+1
           endpos_ppq=endpos
           endpos=reaper.MIDI_GetProjQNFromPPQPos(tk, endpos)
+          
+          -- reject note-offs
+          elseif e_type==types.noteoff then ok=false
         end
-      
+        
+        
       --text and sysex events here
       elseif e_type==0xF0 or t==0x0F or (t>0 and t<=7) then
         DBG("isTextorSYSex")
