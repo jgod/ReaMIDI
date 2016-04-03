@@ -105,6 +105,37 @@ function LGUI.deleteStates()
 end
 
 
+function LGUI.cycleControlledIdx(inc_not_dec)
+  local controls=LGUI.controls
+  local cidx=LGUI.controlled_idx
+  local nc=#controls
+  if cidx==nil then
+    for i=1,nc,1 do
+      if controls[i].can_focus==true then
+        controls[i].has_focus=true
+        LGUI.controlled_idx=i
+        return
+      end
+      return -- still nil
+    end
+  end
+  local adj=inc_not_dec and 1 or -1
+  local pidx=cidx
+  for i=1,nc,1 do
+    pidx=pidx+adj
+    if pidx>nc then pidx=1 end
+    if pidx<1 then pidx=nc end
+    if controls[pidx].can_focus then
+      controls[pidx].has_focus=true
+      controls[LGUI.controlled_idx].has_focus=false
+      LGUI.controlled_idx=pidx
+      return
+    end
+  end -- not changed
+end
+
+
+
 function LGUI.process()
   local c=gfx.getchar()
   gfx.x, gfx.y=0,0
@@ -117,29 +148,7 @@ function LGUI.process()
   if c==9 then
     --if shift is pressed?
     local shift=(gfx.mouse_cap&8==8)
-    if LGUI.controlled_idx==nil then
-      LGUI.controlled_idx=1
-    elseif shift==false then
-      if LGUI.controlled_idx==#controls then
-        controls[#controls].has_focus=false
-        LGUI.controlled_idx=1
-        controls[LGUI.controlled_idx].has_focus=true
-      else
-        controls[LGUI.controlled_idx].has_focus=false
-        LGUI.controlled_idx=LGUI.controlled_idx+1
-        controls[LGUI.controlled_idx].has_focus=true
-      end
-    else
-      if LGUI.controlled_idx==1 then
-        controls[1].has_focus=false
-        LGUI.controlled_idx=#controls
-        controls[LGUI.controlled_idx].has_focus=true
-      else
-        controls[LGUI.controlled_idx].has_focus=false
-        LGUI.controlled_idx=LGUI.controlled_idx-1
-        controls[LGUI.controlled_idx].has_focus=true
-      end
-    end
+    LGUI.cycleControlledIdx(not shift)
   elseif LGUI.controlled_idx~=nil then
     if c>0 then
       if c==13 and controls[LGUI.controlled_idx].type~="edit_box" then 
@@ -240,11 +249,13 @@ end
 
 
 function LControl:takeFocusControl()
-  if LGUI.controlled_idx~=nil then
-    LGUI.controls[LGUI.controlled_idx].has_focus=false
+  if self.can_focus then
+    if LGUI.controlled_idx~=nil then
+        LGUI.controls[LGUI.controlled_idx].has_focus=false
+    end
+    LGUI.controlled_idx=self.idx
+    LGUI.controls[LGUI.controlled_idx].has_focus=true
   end
-  LGUI.controlled_idx=self.idx
-  LGUI.controls[LGUI.controlled_idx].has_focus=true
 end
 
 
@@ -394,7 +405,7 @@ end
 
 
 -- override these in derived controls
-function LControl:onEnter() end
+function LControl:onEnter() self:onClick(nil,nil,nil) end
 
 function LControl:onChar(c) end
 
@@ -425,7 +436,7 @@ LListControl=class(LControl,
           function (self,x,y,w,h,margin,font,colour_fg,colour_bg,state)
             LControl.init(self,x,y,w,h)
             --self.idx=idx
-            --self.x, self.y, self.w, self.h, self.margin=x,y,w,h,margin
+            self.x, self.y, self.w, self.h, self.margin=x,y,w,h,margin
             self.margin=margin
             self.font=font
             self.colour_fg=colour_fg
@@ -461,30 +472,34 @@ end
 
 
 function LListControl:onClick(x,y,m_mod)
-  if self.enabled and self:isInRect(x,y) then
-    y=y-self.y
-    local row=math.floor((y-self.margin)/self.row_height)+self.first_vis_row
-    if self.orig_row~=row then return end
-    if row<=#self.state and row>=1 then
-      if m_mod==0 then
-        for i=1,#self.state,1 do
-          self.state[i][2]=false
+  -- if x==nil then enter pressed and onEnter not
+  -- overridden so do nothing
+  if x~=nil then
+    if self.enabled and self:isInRect(x,y) then
+        y=y-self.y
+        local row=math.floor((y-self.margin)/self.row_height)+self.first_vis_row
+        if self.orig_row~=row then return end
+        if row<=#self.state and row>=1 then
+        if m_mod==0 then
+            for i=1,#self.state,1 do
+            self.state[i][2]=false
+            end
+            self.state[row][2]=not self.state[row][2]
         end
-        self.state[row][2]=not self.state[row][2]
-      end
-      if m_mod==4 then
-        self.state[row][2]=not self.state[row][2]
-      end
-      if m_mod==8 then
-        local step
-        if self.last_clicked_row<row then step=1 else step=-1 end
-        for i=self.last_clicked_row,row,step do
-          self.state[i][2]=true
+        if m_mod==4 then
+            self.state[row][2]=not self.state[row][2]
         end
-      end
-      self.last_clicked_row=row
+        if m_mod==8 then
+            local step
+            if self.last_clicked_row<row then step=1 else step=-1 end
+            for i=self.last_clicked_row,row,step do
+            self.state[i][2]=true
+            end
+        end
+        self.last_clicked_row=row
+        end
     end
-  end 
+  end
 end
 
 
@@ -518,7 +533,7 @@ end
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 LButton=class(LControl,
-      function (self, action, args, is_toggle, label, x,y, w, h, colour_bg,
+      function (self, x,y, w, h, label, action, args, is_toggle, colour_bg,
                 colour_fg,ex_group)
         LControl.init(self,x,y,w,h)
         --self.idx,self.x,self.y,self.w,self.h=idx,x,y,w,h
@@ -526,10 +541,10 @@ LButton=class(LControl,
         self.is_toggle=is_toggle
         self.label=label
         self.colour_bg={0.5,0.5,0.5}
-        self.colour_bg_active=colour_bg
-        self.colour_fg=colour_fg
+        self.colour_bg_active=colour_bg==nil and {0,0,0} or colour_bg
+        self.colour_fg=colour_fg==nil and {1,1,1} or colour_fg
         self.ex_group=ex_group
-        self.state={"test"}
+        self.state.label=label
         self.args=args
         gfx.setfont(1,self.font, 14)
         self.lw,self.lh=gfx.measurestr(self.label)
@@ -637,11 +652,11 @@ end
 LLabel=class(LControl,
           function(self,x,y,w,h,label,font,font_sz,colour_txt)
             LControl.init(self,x,y,w,h)
-            self.font=font
-            self.font_sz=font_sz
+            self.font=font==nil and "Arial" or font
+            self.font_sz=font_sz==nil and 14 or font_sz
             self:setText(label)
-            self.colour_txt=colour_txt
-            self.state.label=label
+            self.colour_txt=colour_txt==nil and {0,0,0} or colour_txt
+            self.can_focus=false
             self:recallState(LGUI.state_name)
           end
 )
@@ -659,7 +674,7 @@ function LLabel:draw()
   gfx.a=1.0
   gfx.x,gfx.y=self.x,self.y
   gfx.setfont(1,self.font, self.font_sz)--, "ub")
-  gfx.printf(self.state.label)
+  gfx.printf(self.label)
 end
 
 
@@ -706,16 +721,42 @@ function LCheckBox:onEnter()
   self.state.check=not self.state.check
 end
 
+
+
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 LComboBox=class(LControl,
-            function(self,x,y,w,h)
+            function(self,x,y,w,h,options)
               LControl.init(self,x,y,w,h)
               self.title=nil
-              self.state=false
+              self.state.choice=1
+              self.options=options
+              self:setOptions()
               self:recallState(LGUI.state_name)
             end
 )
+
+
+function LComboBox:setOptions()
+  self.menu_string=""
+  for i=1,#self.options,1 do
+    self.menu_string=self.menu_string.."|"..self.options[i]
+  end
+    
+end
+
+function LComboBox:onClick(x,y,m_mod)
+  gfx.x,gfx.y=self.x,self.y
+  local choice=gfx.showmenu(self.menu_string)
+  if choice>0 then self.state.choice=choice end
+end
+
+
+function LComboBox:draw()
+  gfx.x,gfx.y=self.x,self.y
+  gfx.setfont(1,"Arial", 14)--, "ub")
+  gfx.printf(self.options[self.state.choice])
+end
 
 
 
@@ -804,6 +845,11 @@ LEditBox=class(LControl,
               end
             end
 )
+
+function LEditBox:setText(txt)
+  self.state.text=txt
+  self.selectAll()
+end
 
 
 function LEditBox:endFocus()
