@@ -258,7 +258,7 @@ function liveMIDIDelete()
        
         if #diffs>0 then
           for i=1,#diffs,1 do
-            local d=diffs[1]
+            local d=diffs[i]
             deletePitch(d.pitch,d.chan)
           end
           diffs={}
