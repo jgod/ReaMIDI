@@ -2,8 +2,10 @@
 
 -- run script and held notes will be deleted from 
 -- either the active item in the MIDI editor or
--- on an item between the loop cursors of a rec-armed
--- track.
+-- on an item between the loop cursors of a the 
+-- first selected track, which must be rec-armed.
+
+
 
 -- run script again to get out of delete mode
 
