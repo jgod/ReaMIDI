@@ -68,33 +68,6 @@ end
 
 
 local delete_ahead=0.15 --so that notes don't sound
-function _getNotes(tk,_pitch,pp_qn,check_start,l_start)
-  local ni, tr, it
-  local midi={}
-  cnt=0
-  
-  local ok, sel, mute, startpos, endpos, chan, pitch, vel=reaper.MIDI_GetNote(tk, 0)
-  while ok do
-    if pitch==_pitch then
-      startpos=reaper.MIDI_GetProjQNFromPPQPos(tk, startpos)
-      endpos=reaper.MIDI_GetProjQNFromPPQPos(tk, endpos)
-      if (startpos<=pp_qn+delete_ahead and endpos>=pp_qn) or 
-          (check_start and startpos>=l_start and startpos<=l_start+delete_ahead) then
-        local note={ type="note", idx=cnt, -- 6
-                    select=sel,mute=mute, ostartpos=startpos, --12
-                    startpos=startpos, endpos=endpos, len=endpos-startpos, 
-                    pitch=pitch, chan=chan, vel=vel }
-        midi[#midi+1]=note
-      end
-    end
-    cnt=cnt+1
-    ok, sel, mute, startpos, endpos, chan, pitch, vel=reaper.MIDI_GetNote(tk, cnt)      
-  end
-  return midi
-end
-
-
-local delete_ahead=0.15 --so that notes don't sound
 function getNotes(tk,pitches,pp_qn,check_start,l_start)
   local ni, tr, it
   local midi={}
