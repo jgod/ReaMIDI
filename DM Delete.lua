@@ -1,3 +1,14 @@
+-- D(rum) M(achine) Delete
+
+-- run script and held notes will be deleted from 
+-- either the active item in the MIDI editor or
+-- the selected item in the arrange page (if the
+-- track is rec armed) as the play cursor goes 
+-- over them.
+
+-- run script again to get out of delete mode
+
+
 local function DBG(str)
   --reaper.ShowConsoleMsg(str.."\n")
 end
@@ -6,6 +17,7 @@ jsfx={} --store details of helper effect
 jsfx.name="Script Note Getter"
 jsfx.fn="Script Note Getter"
 --jsfx.body at end of script
+
 
 function createJSEffect(fn,str)
   local file=io.open(reaper.GetResourcePath().."/Effects/"..fn, "w")
@@ -19,6 +31,7 @@ function deleteJSEffect(fx)
 end
 
 
+--fx is table with .name and .fn (for filename)
 function removeJSEffect(track,fx)
   local chunk,ok="",false
   ok,chunk=reaper.GetTrackStateChunk(track,chunk, false)
@@ -198,9 +211,7 @@ function cleanUp()
     DBG("exit")
     --removeJSEffect(tr,jsfx) --set chunk causes glitches
                               --so can't remove input FX
-    reaper.TrackFX_SetEnabled(tr, helper_idx, false)
-  else
-    reaper.ReaScriptError("Need active take in MIDI editor!")
+    reaper.TrackFX_SetEnabled(tr, helper_idx, false) --just disable it
   end
 
 end
