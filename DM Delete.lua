@@ -135,14 +135,26 @@ function dMdelete()
 end
 
 
-function prep()
-  DBG("in prep")
+function getMidiEditorTrackTake()
   local ame=reaper.MIDIEditor_GetActive()
   local mode=reaper.MIDIEditor_GetMode(ame)
   if mode > -1 then -- we are in a MIDI editor, -1 if ME not focused
     tk=reaper.MIDIEditor_GetTake(ame)
-    tr=reaper.GetMediaItemTake_Track(tk)
-  else -- get rec armed, selected track
+    -- MIDI editor could be open with nothing in it
+    -- it still returns a take that is not a take - but what is it?
+    if not tk==null then return nil,nil end
+    tr=reaper.GetMediaItemTake_Track(tk) 
+  else
+    return nil,nil
+  end
+  return tr,tk
+end
+
+
+function prep()
+  DBG("in prep")
+  tr,tk=getMidiEditorTrackTake()
+  if tk==nil then 
     if reaper.CountSelectedTracks()>0 then
         tr=reaper.GetSelectedTrack(0,0)
         local _,t_name=reaper.GetSetMediaTrackInfo_String(tr,"P_NAME"," ",false)
@@ -193,7 +205,7 @@ end
 
 
 jsfx.body=[[
-desc:Script MIDI Monitor
+desc:Script Note Getter
 
 slider1:0<0,1,1{On,Off}>Active (eats notes)
 slider2:0<0,127,1>Notes in buffer
