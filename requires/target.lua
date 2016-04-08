@@ -11,14 +11,27 @@ targets={
           Project=7
 }
 
-function getTargetTakes()
-  local target
+
+function getMidiEditorTake()
   local ame=reaper.MIDIEditor_GetActive()
   local mode=reaper.MIDIEditor_GetMode(ame)
-  local tks={}
-  --reaper.ShowConsoleMsg("ME Mode: "..mode.."\n")
   if mode > -1 then -- we are in a MIDI editor, -1 if ME not focused
-    tks[1]=reaper.MIDIEditor_GetTake(ame)
+    tk=reaper.MIDIEditor_GetTake(ame)
+    --check that it's an actual take (in case of empty MIDI editor)
+    if not reaper.ValidatePtr(tk, 'MediaItem_Take*') then return nil end
+  else
+    return nil
+  end
+  return tk
+end
+
+
+function getTargetTakes()
+  local target
+  local tks={}
+  local take=getMidiEditorTake()
+  if take~=nil then
+    tks[1]=take
     target=targets.MIDIEditor
   else
     target=targets.SelectedItems

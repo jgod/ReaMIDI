@@ -27,6 +27,13 @@
 -- if anyone wants to use this, remember we can't pickle Lua userdata
 -- ie, any of the Reaper specific pointers to Track, Item, Take n stuff
 
+
+_DBG=true
+function DBG(str)
+  if _DBG then reaper.ShowConsoleMsg(str.."\n") end
+end
+
+
 ----------------------------------------------
 -- Pickle.lua
 -- A table serialization utility for lua
@@ -124,19 +131,29 @@ end
 
 local tk=nil
 
-function deletePitch(pitch, chan)
+
+function idxcmp(a,b)
+  return a.idx < b.idx
+end
+
+function deleteNote(pitch, chan)
    notes=getNotes(tk)
+   --table.sort(notes,idxcmp)
    if #notes==0 then return false end
    local found=false
    local i=#notes
-   while i>0 do
+   while not found do
      if notes[i].pitch==pitch and notes[i].chan==chan then
        reaper.MIDI_DeleteNote(tk,notes[i].idx)
        found=true
      end
      i=i-1
+     if i<1 then return false end
    end
+   reaper.MIDI_Sort(tk)
+   return found
 end
+
 
 function deleteAllNotes(take)
   local ok, sel, mute, startpos, endpos, chan, pitch, vel=reaper.MIDI_GetNote(tk, 0)
@@ -145,6 +162,7 @@ function deleteAllNotes(take)
     ok, sel, mute, startpos, endpos, chan, pitch, vel=reaper.MIDI_GetNote(tk, 0)
   end
 end
+ 
  
  -- this tidy function and any remaining tidy bits of the following
  -- one bushwacked from Schwa - thanks Schwa!   
@@ -180,6 +198,20 @@ function dbg(msg)
 end
 
 
+function getMidiEditorTake()
+  local ame=reaper.MIDIEditor_GetActive()
+  local mode=reaper.MIDIEditor_GetMode(ame)
+  if mode > -1 then -- we are in a MIDI editor, -1 if ME not focused
+    tk=reaper.MIDIEditor_GetTake(ame)
+    --check that it's an actual take (in case of empty MIDI editor)
+    if not reaper.ValidatePtr(tk, 'MediaItem_Take*') then return nil end
+  else
+    return nil
+  end
+  return tk
+end
+
+
 function liveMIDIDelete()
   local last_note
   local trigger_time=os.clock()
@@ -187,12 +219,9 @@ function liveMIDIDelete()
   local key="state_table"
   local notes=nil
   
-  local ame=reaper.MIDIEditor_GetActive()
-  local mode=reaper.MIDIEditor_GetMode(ame)
+  local tk=getMidiEditorTake()
   
-  if mode > -1 then -- we are in a MIDI editor, -1 if ME not focused
-    tk=reaper.MIDIEditor_GetTake(ame)
-  else -- get rec armed, selected track
+  if tk==nil then -- invalid take from ME
     local tr=reaper.GetSelectedTrack(0,0)
     local _,t_name=reaper.GetSetMediaTrackInfo_String(tr,"P_NAME"," ",false)
     local _, ts=reaper.GetTrackState(tr)
@@ -257,9 +286,13 @@ function liveMIDIDelete()
         end
        
         if #diffs>0 then
+          DBG("#diffs="..#diffs)
           for i=1,#diffs,1 do
             local d=diffs[i]
-            deletePitch(d.pitch,d.chan)
+            local ok=true
+            while ok do
+              ok=deleteNote(d.pitch,d.chan)
+            end
           end
           diffs={}
         end     

@@ -140,9 +140,8 @@ function getMidiEditorTrackTake()
   local mode=reaper.MIDIEditor_GetMode(ame)
   if mode > -1 then -- we are in a MIDI editor, -1 if ME not focused
     tk=reaper.MIDIEditor_GetTake(ame)
-    -- MIDI editor could be open with nothing in it
-    -- it still returns a take that is not a take - but what is it?
-    if not tk==null then return nil,nil end
+    --check that it's an actual take (in case of empty MIDI editor)
+    if not reaper.ValidatePtr(tk, 'MediaItem_Take*') then return nil,nil end
     tr=reaper.GetMediaItemTake_Track(tk) 
   else
     return nil,nil
