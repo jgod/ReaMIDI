@@ -86,9 +86,10 @@ end
 ok,retvals=""
 ok, retvals=reaper.GetUserInputs("MIDI Transpose",1,"Amount: ","")
 retvals=trimWs(retvals)
-
-reaper.Undo_BeginBlock()
-transpose(retvals)
-reaper.Undo_EndBlock("Transpose MIDI", -1)
-reaper.UpdateArrange()
+if ok then 
+  reaper.Undo_BeginBlock()
+  transpose(retvals)
+  reaper.Undo_EndBlock("Transpose MIDI", -1)
+  reaper.UpdateArrange()
+end
 
