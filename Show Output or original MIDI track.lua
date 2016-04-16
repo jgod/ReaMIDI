@@ -3,6 +3,10 @@ function DBG(str)
   if _DBG then reaper.ShowConsoleMsg(str.."\n") end
 end
 
+local state_name="ReaMIDI_ShowOutputOrOriginalMIDITrack"
+local state_key="last_MIDI_track"
+
+
 bus=0
 num_receives=0
 function getMidiSendOutputTrack(tr)
@@ -20,6 +24,11 @@ function getMidiSendOutputTrack(tr)
     reaper.SetTrackSelected(tr,false)
     reaper.Main_OnCommand(40913,0) -- scroll selected track into view
     reaper.SetMixerScroll(dest_track)
+    
+    --store the track, for recall if when going back
+    --to MIDI there are multiple MIDI tracks
+    local guid=reaper.BR_GetMediaTrackGUID(tr)
+    reaper.SetProjExtState(0,state_name,state_key,guid,true)
     return true
   else
     return false 
@@ -42,15 +51,34 @@ function getOriginatingMidiTrack(tr)
   -- then select and scroll to them
   num_receives=reaper.GetTrackNumSends(send_track,-1)
   local found=false
+  local orig_tracks={}
   for i=0,num_receives-1,1 do
     local receive_bus=reaper.BR_GetSetTrackSendInfo(send_track, -1, i, "I_MIDI_DSTBUS", false, 0)
     if receive_bus==bus then --==0 and 1 or bus then
-      local orig_track=reaper.BR_GetMediaTrackSendInfo_Track(send_track, -1 , i, 0)
-      reaper.SetTrackSelected(orig_track, true)
+      orig_tracks[#orig_tracks+1]=reaper.BR_GetMediaTrackSendInfo_Track(send_track, -1 , i, 0)
       found=true
     end
   end
   if found then reaper.SetTrackSelected(tr,false) end
+  
+  --check for last stored MIDI orig track
+  found=false
+  local ok, guid=reaper.GetProjExtState(0, state_name, state_key)
+
+  if guid~=nil then
+    for i=1,#orig_tracks,1 do
+      local ot=orig_tracks[i]
+      if reaper.BR_GetMediaTrackGUID(ot)==guid then
+        reaper.SetTrackSelected(ot, true)
+        found=true
+      end
+    end
+  end
+  
+  if not found then --just select the first one
+    reaper.SetTrackSelected(orig_tracks[1], true)
+  end
+ 
   reaper.Main_OnCommand(40913,0) -- scroll selected track into view
 end
 
