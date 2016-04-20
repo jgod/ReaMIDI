@@ -1,22 +1,9 @@
 desc:Live Quantize
 
-//v0.2 - adds % late tolerance slider
-//v0.3 - adds note off quantize
-       - adds sending CCs for allowed late notes (to send to samplers
-                        to adjust sample start times (n stuff))
-       - fixes notes not playing at loop returns
-       
-       
-// issue in trigger quantize releasing and pressing same note
-// doesn't retrigger that note
-
 
 slider1:0<0,4,1{Next Bar,1/2,1/4,1/8,1/16}>Quantize to: 
 slider2:0<0,100,1>% late tolerance
-slider3:12<0,31,1>Late CC (14 bit)
-slider4:100<0,100,1>CC scale (%)
-slider5:0<0,1,1{No,Yes}>Quantize Length
-slider6:0<0,1,1{Off,On}>Trigger mode (note offs don't cancel trigger)
+slider3:0<0,1,1{Off,On}>Trigger mode (note offs don't cancel trigger)
 
 
 //------------------------------------------------------------------------------------------------
@@ -33,150 +20,79 @@ function setQuantizeSamples()(
 
 send_offset=-1; 
 
-last_beat_position=00;
-
-notebuffer.width=3;
-notebuffer.pos=0; //start pos of buffer
-notebuffer.length=0;
-
-max_entries=100000;
-
-noteoffbuffer.width=notebuffer.width;
-noteoffbuffer.pos=max_entries*noteoffbuffer.width;
-noteoffbuffer.length=0;
-
-triggerbuffer.width=notebuffer.width;
-triggerbuffer.pos=max_entries*triggerbuffer.width;
-triggerbuffer.length=0;
-
-
-function addRemoveNoteFromBuffer(m1,m2)
-( 
-  s = m1&$xF0;
-  c = m1&$xF; // channel
-  n = m2&$xFF;
-  v = (m2&$xFF00)>>8; // velocity
-  
-  notebuf=this.pos;
-  init_buflen=buflen=this.length;
-  nb_width=this.width;
-  
-  i = -1;
-  while // look for this note|channel already in the buffer
-  (
-    i = i+1;
-    i < buflen && (notebuf[nb_width*i]|0 != n || notebuf[nb_width*i+1]|0 != c);
-   );
-
-  (s == $x90 && v > 0) ? // note-on, add to buffer
-  ( 
-    notebuf[nb_width*i] = n;
-    notebuf[nb_width*i+1] = c;
-    notebuf[nb_width*i+2] = v;
-    i == buflen ? buflen = buflen+1;
-  ) 
-  : // note-off, remove from buffer
-  (
-    is_note_off=1;
-    i < buflen ?
-    (
-       memcpy(notebuf+nb_width*i, notebuf+nb_width*(i+1),
-                    nb_width*(buflen-i-1));  // delete the entry
-       buflen = buflen-1;
-     );
-  );
-  
-  this.length=buflen;
-  buflen==init_buflen ? -1 : v; 
+last_beat_position=0;
+seq=0;
+evt_width=3;
+seq_len=0;
+function addEventToSeq(samples_ahead,m1,m2)
+(
+   i = seq_len;
+   seq[evt_width*i] = samples_ahead;
+   seq[evt_width*i+1] = m1;
+   seq[evt_width*i+2] = m2;
+   seq_len += 1;
 );
 
 
-
-function copyBufferToPos(dest_pos)
+function seqHasEvent(m1,m2)
 (
-   i=tmp=0;
-   loop (this.length*this.width,
-      dest_pos[i]=tmp[i];
-   );
-   this.length; //return length
-);
-
-
-function sendBufferNotes(noteOnsNotOffs,offs)
-(
-  noteOnsNotOffs==1?n=$x90 : n=$x80;
   i=0;
-  notebuf=this.pos;
-  loop(this.length,
-    n==$x80 ? NOTEOFFS=1 : NOTEOFFS=0;
-    cp=i*this.width;
-    midisend(floor(offs), n|notebuf[cp+1], notebuf[cp], notebuf[cp+2]);
+  evt=-1;
+  loop(seq_len,
+    pos=i*evt_width;
+    seq[pos+1]==m1 && seq[pos+2]&$xFF==m2&$xFF ? evt=i;
     i+=1;
   );
+  evt; //returns (last found) event position if found
 );
 
 
-function sendAndClearBuffer(noteOnsNotOffs,offs)
+function removeEventFromSeq(entry)
 (
-  this.sendBufferNotes(noteOnsNotOffs,offs);
-  this.length=0;
-);
-
-
-function sendBuffers(offs)
-( 
-  midisend(0,$xB0,late_cc);
-  midisend(0,$xB0,late_cc+32);
-  trigger_mode==1 ? (
-    //stuck notes this way round, no retriggers the other way
-    notebuffer.sendAndClearBuffer(1,offs);
-    noteoffbuffer.sendAndClearBuffer(0,offs);
-   
-    noteoffbuffer.length=triggerbuffer.copyBufferToPos(noteoffbuffer.pos);
-    triggerbuffer.length=0;
-  ):(
-    noteoffbuffer.sendAndClearBuffer(0,offs);
-    notebuffer.sendAndClearBuffer(1,offs);
+  entry < seq_len ? (
+    memcpy(seq+evt_width*entry,seq+evt_width*(entry+1),
+                       evt_width*(seq_len-entry-1));
+    seq_len-=1;
   );
-  offs=0;
 );
 
 
-function processNoteOff(msg1,msg23)
+function sendEvent(event)
 (
-  vel=notebuffer.addRemoveNoteFromBuffer(msg1,msg23);
-  //notebuffer.addRemoveNoteFromBuffer(msg1,msg23)==-1 ? (
-  vel==-1 ? (
-    noteoffbuffer.addRemoveNoteFromBuffer($x90,(msg23&$x00FF)|(127<<8))==-1 ? (
-      noteoffbuffer.addRemoveNoteFromBuffer(msg1,msg23);
-    );
-  ):(
-    trigger_mode==1 ? (
-      triggerbuffer.addRemoveNoteFromBuffer(msg1,msg23)==-1 ? ( 
-        triggerbuffer.addRemoveNoteFromBuffer($x90,(msg23&$x00FF)|(127<<8));    
-        notebuffer.addRemoveNoteFromBuffer($x90,(msg23&$x00FF)|(127<<8));
-      );
-    );
-  );  
+  sp=evt_width*event;
+  midisend(seq[sp]+samplesblock,seq[sp+1],seq[sp+2]);
+  removeEventFromSeq(event);
 );
 
+
+function sendThisBufferEvents()
+(
+  sb=samplesblock;
+  i=0;
+  while (i<seq_len)(
+    pos=evt_width*i;
+    seq[pos]-=sb;
+    seq[pos]<0 ? (
+      sendEvent(i);
+    ):(
+      i+=1;
+    );
+  );
+);
 
 
 //------------------------------------------------------------------------------------------------
 @slider
 setQuantizeSamples();
 late_allowance=slider2/100;
-late_cc=slider3;
-cc_scale=slider4;
-quantize_length=slider5;
-trigger_mode=slider6;
+trigger_mode=slider3;
 
 
 
 //------------------------------------------------------------------------------------------------
 @block
 play_state!=last_play_state ? (last_play_state=play_state);
-
+q_sample_len=q*(srate/tempo)*60;
 play_state!=0 ? (
   setQuantizeSamples();
   beat_sample_pos=beat_position*((srate/tempo)*60);
@@ -201,63 +117,33 @@ play_state!=0 ? (
 
 while (midirecv(offset,msg1,msg23))
 ( 
-  msg1==$x90 || msg1==$x80 && (play_state!=0 || send_offset >-1) ?
-  (
-    vel = (msg23&$xFF00)>>8; // velocity
-    (q_off>(q*late_allowance)) ? (
-      offset>send_offset && send_offset>0 && send_offset<samplesblock ? (
-         sendBuffers(send_offset);
-         send_offset=-1;
-      );
-      msg1==$x90 && vel > 0 ? (
-        notebuffer.addRemoveNoteFromBuffer(msg1,msg23)==-1 ? midisend(offset,msg1,msg23);
-      ):(
-        //is note off
-        quantize_length!=1 ? (
-          notebuffer.addRemoveNoteFromBuffer(msg1,msg23)==-1 ? midisend(offset,msg1,msg23);;
-        ):(
-          processNoteOff(msg1,msg23);
-        );
-      );
-    ):(
-      //is late/unquantized note on/off
-      msg1==$x90 && vel > 0 ? (
-        cc_val=(16384*(cc_scale/100)*(q_off*(1/q)));
-        cc_val_MSB=cc_val>>7;
-        cc_val_LSB=cc_val&$x7F;
-        cc_val_recomb=cc_val_MSB<<7|cc_val_LSB;
-        midisend(offset-1,$xB0,(late_cc|(cc_val_MSB<<8)));
-        midisend(offset-1,$xB0,((late_cc+32)|(cc_val_LSB<<8)));         
-                                                                               
-        midisend(offset,msg1,msg23);
-        
-      ):(
-        quantize_length!=1 ?
-        ( 
-          //reset CC after note sent
-          midisend(offset-1,$xB0,late_cc);
-          midisend(offset-1,$xB0,late_cc+32);
-          midisend(offset,msg1,msg23);
-        ):(
-          processNoteOff(msg1,msg23);
-        );
-      );
-    );   
+  type=msg1&$xF0;
+  type==$x90 || type==$x80 && play_state!=0  ?
+  (  
+     type==$x80 || (type==$x90 && (q_off>(q*late_allowance))) ? ( 
+       type==$x80 ? (
+         epos=seqHasEvent($x90|(msg1&$xF),msg23);
+         epos>-1 ? (
+           trigger_mode ? (
+             addEventToSeq(send_offset+q_sample_len,msg1,msg23);
+           ):(
+             removeEventFromSeq(epos);
+           );
+         ):(
+           addEventToSeq(send_offset,msg1,msg23);
+         );
+       ):(
+         addEventToSeq(send_offset,msg1,msg23);
+       );
+     ):(
+       midisend(offset,msg1,msg23);
+     );
   ):(
-    midisend(offset,msg1,msg23);
+     midisend(offset,msg1,msg23);
   );
 );
 
-
-(send_offset>0 && send_offset<samplesblock) ?
-( 
-  sendBuffers(send_offset);
-);
-
-
-send_offset-=samplesblock;
-
-
+sendThisBufferEvents();
 //------------------------------------------------------------------------------------------------
 
   
