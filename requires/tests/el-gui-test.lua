@@ -1,7 +1,7 @@
 dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/el gui.lua")
 
 
-LGUI.init("El GUI Test", 1000, 520, true)
+
 
 
 function goToEditMode()
@@ -17,6 +17,7 @@ end
 local editbox
 
 function init()
+  DBG("in init")
   LGUI.addControl(LButton(100,20,60,25,
                   "Hello", 
                   nil,nil,
@@ -56,7 +57,7 @@ function init()
   function llc:onDoubleClick(x,y,m_mod)
     local ok, str=reaper.GetUserInputs("Rename",1,"Name: ","")
     y=y-self.y
-    local row=math.floor((y-self.margin)/self.row_height)+self.first_vis_row
+    local row=math.floor((y-self.margin)/self.row_height)+self.state.first_vis_row
     if ok then self.state[row][1]=str end
   end
   
@@ -82,7 +83,7 @@ function init()
   
   combo=LComboBox(250,150,100,20,{"one","two","three"})
   LGUI.addControl(combo)
-  LGUI.process()
+  LGUI.process(init)
 end
 
 
@@ -92,5 +93,6 @@ end
 
 reaper.atexit(onExit)
 
+LGUI.init("El GUI Test", 1000, 520, false,init)
 init()
 

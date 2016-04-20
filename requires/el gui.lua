@@ -4,7 +4,7 @@ dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/strings.lua")
 
 
 function DBG(str)
-  --[[
+  ---[[
   if str==nil then str="--nil value/string--" end
   if type(str)=="boolean" then
     if str==true then str="true" else str="false" end
@@ -46,16 +46,20 @@ LGUI.current_project=reaper.EnumProjects(-1,"")
 LGUI.exit_script=false
 LGUI.mainFunction=nil
 
+
 function LGUI.setMainFunction(func)
   LGUI.mainFunction=func
 end
 
 
-function LGUI.init(name,w,h,dock_state)
-   --LGUI.deleteStates()
+function LGUI.init(name,w,h,dock_state,main_init)
+   --LGUI.deleteStates()                      -- uncomment to reset ext states!!!!
+   LGUI.main_init=main_init
+   LGUI.init=true
    LGUI.w,LGUI.h=w,h
    LGUI.script_name=name
    LGUI.state_name="I8bE"..string.gsub(name,"%s","")
+   reaper.SetProjExtState(0,LGUI.state_name, "init","init")
    gfx.init(name,w,h,dock_state,300,300)
 end
 
@@ -94,6 +98,7 @@ function LGUI.recallStates()
   for i=1,#controls,1 do
     controls[i]:recallState(LGUI.state_name)
   end
+  return true
 end
 
 
@@ -133,7 +138,6 @@ function LGUI.cycleControlledIdx(inc_not_dec)
     end
   end -- not changed
 end
-
 
 
 function LGUI.process()
@@ -181,12 +185,28 @@ end
 
 
 function LGUI.slowProcess()
-  --LGUI.deleteStates()  
-  local cp=reaper.EnumProjects(-1,"")
-  if cp~=LGUI.current_project then
+  --LGUI.deleteStates()
+  --check if project has changed (switching project tabs etc)
+  local p_name=""
+  local cp,p_name=reaper.EnumProjects(-1,"")
+  if cp~=LGUI.current_project or p_name~=LGUI.current_project_name or LGUI.init then
     LGUI.current_project=cp
-    LGUI.recallStates()
+    LGUI.current_project_name=p_name
+    DBG("Different project:  "..p_name)
+    local s=reaper.GetProjExtState(0,LGUI.state_name,"init")
+    DBG("init state: -"..s.."-")
+    if s+0==0 then
+      DBG("initting script")
+      reaper.SetProjExtState(0,LGUI.state_name,"init","init")
+      LGUI.controls={}
+      LGUI.idx=1
+      LGUI.main_init()
+    else
+      LGUI.recallStates()
+    end
+    LGUI.init=false
   else 
+    --DBG("Same project")
     LGUI.saveStates()
   end
   LGUI.countdown=LGUI.timer
@@ -450,13 +470,16 @@ LListControl=class(LControl,
             self.colour_bg=colour_bg
             self.state=state
             self.num_rows=10
-            self.first_vis_row=1
+            self.state.first_vis_row=1
             self.row_height=19
             self.selected_rows={}
             self.enabled=true
             self.last_clicked_row=-1
             --LControl.addControl(self)
             self:recallState(LGUI.state_name)
+            self.state.first_vis_row=self.state.first_vis_row==nil
+                 and 1 or self.state.first_vis_row
+            --DBG(self.state)
           end
 )
 
@@ -465,9 +488,9 @@ function LListControl:addEntry(str)
   local tab={str,false}
   self.state[#self.state+1]=tab
   if #self.state>self.num_rows then
-    self.first_vis_row=#self.state-self.num_rows+1
+    self.state.first_vis_row=#self.state-self.num_rows+1
   else
-    self.first_vis_row=1
+    self.state.first_vis_row=1
   end
   self:setOnlySelected(#self.state,false)
 end
@@ -475,7 +498,7 @@ end
 
 function LListControl:onMouseDown(x, y, m_mod)
   y=y-self.y
-  self.orig_row=math.floor((y-self.margin)/self.row_height)+self.first_vis_row
+  self.orig_row=math.floor((y-self.margin)/self.row_height)+self.state.first_vis_row
 end
 
 
@@ -494,7 +517,7 @@ function LListControl:onClick(x,y,m_mod)
   if x~=nil then
     if self.enabled and self:isInRect(x,y) then
         y=y-self.y
-        local row=math.floor((y-self.margin)/self.row_height)+self.first_vis_row
+        local row=math.floor((y-self.margin)/self.row_height)+self.state.first_vis_row
         if self.orig_row~=row then return end
         if row<=#self.state and row>=1 then
         if m_mod==0 then
@@ -518,6 +541,7 @@ end
 
 
 function LListControl:draw()
+  if self.state.first_vis_row==nil then self.state.first_vis_row=1 end
   self:drawBorder(0,0,0,1)
   gfx.r, gfx.g, gfx.b = self:getColour(self.colour_bg)
   gfx.a = 1
@@ -526,11 +550,11 @@ function LListControl:draw()
   gfx.x, gfx.y = self.x+self.margin, self.y+self.margin
   
   local inc=1
-  local fvr=self.first_vis_row
+  local fvr=self.state.first_vis_row~=nil and self.state.first_vis_row or 1
   for i=fvr,fvr+self.num_rows-1,1 do
     local x, y=self.x+self.margin, (self.y+(self.row_height*(inc-1)))+self.margin
     gfx.x, gfx.y = x,y
-    if self.state[i][2]==true then
+    if self.state[i] and self.state[i][2]==true then
       gfx.r, gfx.g, gfx.b = self:getColour(self.colour_fg)
       gfx.rect(gfx.x,gfx.y-1,self.w-(self.margin*2),self.row_height-1)
       gfx.x,gfx.y=x,y
@@ -539,7 +563,7 @@ function LListControl:draw()
     else
       gfx.r, gfx.g, gfx.b = self:getColour(self.colour_fg)
     end
-    gfx.printf(self.state[i][1])
+    if self.state[i] then gfx.printf(self.state[i][1]) end
     inc=inc+1
   end
 end
@@ -555,15 +579,15 @@ function LListControl:selectPrevOrNext(prev)
   if not entry then self.state[1][2]=true return end
   if entry>1 and prev then
     self:setOnlySelected(entry-1,false)
-    if entry-1 < self.first_vis_row then
-      self.first_vis_row=self.first_vis_row-1
+    if entry-1 < self.state.first_vis_row then
+      self.state.first_vis_row=self.state.first_vis_row-1
     end
     return
   end
   if entry<#self.state and not prev then
     self:setOnlySelected(entry+1,false)
-    if entry+1 > self.first_vis_row+self.num_rows-1 then
-      self.first_vis_row=self.first_vis_row+1
+    if entry+1 > self.state.first_vis_row+self.num_rows-1 then
+      self.state.first_vis_row=self.state.first_vis_row+1
     end
   end
 end
