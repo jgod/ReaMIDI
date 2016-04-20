@@ -340,17 +340,24 @@ function LControl:update(mx, my, m_mod)
 end
 
 
+function LControl:drawBorder(r,g,b,a,offset)
+  offset=offset==nil and 0 or offset
+  gfx.x, gfx.y=self.x, self.y
+  --self.setGfxColour(self.colour_fg)
+  gfx.r,gfx.g,gfx.b,gfx.a=r,g,b,a
+  gfx.rect(self.x-offset,self.y-offset,
+      self.w+offset*2,self.h+offset*2,false)
+  gfx.a=1 --reset for later
+end
+
+
 function LControl:prepDraw(mx,my)
   self.last_x, self.last_y = mx, my
-  if self.edit_mode==true or LGUI.controlled_idx==self.idx then 
-    gfx.x, gfx.y=self.x, self.y
-    --self.setGfxColour(self.colour_fg)
-    gfx.r,gfx.g,gfx.b,gfx.a=0.1,0.1,1,0.24
-    gfx.rect(self.x-2,self.y-2,self.w+4,self.h+4,false)
-    gfx.rect(self.x-1,self.y-1,self.w+2,self.h+2,false)
-    gfx.a=1 --reset for later
-  end
   self:draw()
+  if self.edit_mode==true or LGUI.controlled_idx==self.idx then 
+    self:drawBorder(0.1,0.1,1,0.24,2)
+    self:drawBorder(0.1,0.1,1,0.24,1)
+  end
 end
 
 
@@ -444,7 +451,7 @@ LListControl=class(LControl,
             self.state=state
             self.num_rows=10
             self.first_vis_row=1
-            self.row_height=20
+            self.row_height=19
             self.selected_rows={}
             self.enabled=true
             self.last_clicked_row=-1
@@ -458,16 +465,26 @@ function LListControl:addEntry(str)
   local tab={str,false}
   self.state[#self.state+1]=tab
   if #self.state>self.num_rows then
-    self.first_vis_row=#self.state-self.num_rows
+    self.first_vis_row=#self.state-self.num_rows+1
   else
     self.first_vis_row=1
   end
+  self:setOnlySelected(#self.state,false)
 end
 
 
 function LListControl:onMouseDown(x, y, m_mod)
   y=y-self.y
   self.orig_row=math.floor((y-self.margin)/self.row_height)+self.first_vis_row
+end
+
+
+function LListControl:setOnlySelected(row,toggle)
+  for i=1,#self.state,1 do
+    self.state[i][2]=false
+  end
+  self.state[row][2]=
+   toggle and not self.state[row][2] or true
 end
 
 
@@ -481,10 +498,7 @@ function LListControl:onClick(x,y,m_mod)
         if self.orig_row~=row then return end
         if row<=#self.state and row>=1 then
         if m_mod==0 then
-            for i=1,#self.state,1 do
-            self.state[i][2]=false
-            end
-            self.state[row][2]=not self.state[row][2]
+            self:setOnlySelected(row,true)
         end
         if m_mod==4 then
             self.state[row][2]=not self.state[row][2]
@@ -504,6 +518,7 @@ end
 
 
 function LListControl:draw()
+  self:drawBorder(0,0,0,1)
   gfx.r, gfx.g, gfx.b = self:getColour(self.colour_bg)
   gfx.a = 1
   --gfx.setfont(1,self.font, self.font_sz)--, "ub")
@@ -511,7 +526,8 @@ function LListControl:draw()
   gfx.x, gfx.y = self.x+self.margin, self.y+self.margin
   
   local inc=1
-  for i=self.first_vis_row,#self.state,1 do
+  local fvr=self.first_vis_row
+  for i=fvr,fvr+self.num_rows-1,1 do
     local x, y=self.x+self.margin, (self.y+(self.row_height*(inc-1)))+self.margin
     gfx.x, gfx.y = x,y
     if self.state[i][2]==true then
@@ -526,6 +542,41 @@ function LListControl:draw()
     gfx.printf(self.state[i][1])
     inc=inc+1
   end
+end
+
+
+function LListControl:selectPrevOrNext(prev)
+  for i=1,#self.state,1 do
+    if self.state[i][2]==true then
+      entry=i
+      break
+    end
+  end
+  if not entry then self.state[1][2]=true return end
+  if entry>1 and prev then
+    self:setOnlySelected(entry-1,false)
+    if entry-1 < self.first_vis_row then
+      self.first_vis_row=self.first_vis_row-1
+    end
+    return
+  end
+  if entry<#self.state and not prev then
+    self:setOnlySelected(entry+1,false)
+    if entry+1 > self.first_vis_row+self.num_rows-1 then
+      self.first_vis_row=self.first_vis_row+1
+    end
+  end
+end
+
+
+function LListControl:onChar(c)
+  if c==0x7570 then  self:selectPrevOrNext(true)-- up arrow
+  elseif c==0x646F776e then self:selectPrevOrNext(false) end
+end
+
+
+function LListControl:onEnter()
+  self:addEntry("entry "..#self.state+1)
 end
 
 
@@ -647,6 +698,7 @@ end
 
 
 
+
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 LLabel=class(LControl,
@@ -753,7 +805,8 @@ end
 
 
 function LComboBox:draw()
-  gfx.x,gfx.y=self.x,self.y
+  self:drawBorder(0,0,0,1)
+  gfx.x,gfx.y=self.x+4,self.y+2
   gfx.setfont(1,"Arial", 14)--, "ub")
   gfx.printf(self.options[self.state.choice])
 end

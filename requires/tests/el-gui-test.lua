@@ -60,10 +60,12 @@ function init()
     if ok then self.state[row][1]=str end
   end
   
+  --[[
   function llc:onEnter()
     local ok, str=reaper.GetUserInputs("Rename",1,"Name: ","")
     if ok then self.state[self.last_clicked_row][1]=str end
   end
+  --]]
 
   LGUI.addControl(llc)
   
