@@ -97,6 +97,7 @@ end
 
 
 function dMdelete()
+  if reaper.get_action_context() then return end
   -- tr, tk, helper_idx set in prep()
   -- get number of held notes from helper plugin
   nib=reaper.TrackFX_GetParam(tr, helper_idx, 1) --1=note in buffer
@@ -152,6 +153,8 @@ end
 
 function prep()
   DBG("in prep")
+  reaper.get_action_context() -- to clear is_new_value for checking
+                              -- for new presses in main loop
   tr,tk=getMidiEditorTrackTake()
   if tk==nil then 
     if reaper.CountSelectedTracks()>0 then
