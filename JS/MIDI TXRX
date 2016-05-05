@@ -1,0 +1,38 @@
+desc:MIDI TXRX
+
+slider1:0<0,1,1{Send,Receive}>Mode
+slider2:1<1,128>Pipe
+
+@init
+bpos=0;
+buf_start_pos=6666;
+
+@slider
+mode=slider1;
+buf=buf_start_pos*slider2;
+
+@block
+mode==0 ?
+( 
+  gmem[buf]=0;
+  bpos=0;
+  bs=buf+1;
+  while (midirecv(os,m1,m2,m3))(
+    gmem[bs+bpos]=os; gmem[bs+bpos+1]=m1; gmem[bs+bpos+2]=m2; gmem[bs+bpos+3]=m3;
+    bpos+=4;
+    gmem[buf]+=1;
+    midisend(os,m1,m2,m3);
+  );
+):(
+  bpos=0;
+  bs=buf+1;
+  loop(gmem[buf],
+        midisend(gmem[bs+bpos],gmem[bs+bpos+1],gmem[bs+bpos+2],gmem[bs+bpos+3]);
+        bpos+=4;
+  );
+);
+
+@sample
+spl0=spl0;
+spl1=spl1;
+
