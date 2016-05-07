@@ -97,7 +97,8 @@ end
 
 
 function dMdelete()
-  if reaper.get_action_context() then return end
+  local is_new_value,_,_,_,_,_,val=reaper.get_action_context()
+  if is_new_value and val==0 then return end
   -- tr, tk, helper_idx set in prep()
   -- get number of held notes from helper plugin
   nib=reaper.TrackFX_GetParam(tr, helper_idx, 1) --1=note in buffer
