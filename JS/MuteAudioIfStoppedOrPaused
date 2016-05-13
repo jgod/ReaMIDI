@@ -1,0 +1,10 @@
+desc: Mute on stop/pause
+
+@init
+
+@sample
+
+((play_state <= 0) || (play_state == 2) || (play_state == 6)) ? (
+spl0 = 0;
+spl1 = 0;
+);
