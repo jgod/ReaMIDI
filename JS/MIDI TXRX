@@ -1,15 +1,16 @@
 desc:MIDI TXRX
 
 slider1:0<0,1,1{Send,Receive}>Mode
-slider2:1<1,128>Pipe
+slider2:1<1,20>Pipe
 
 @init
 bpos=0;
-buf_start_pos=6666;
+buf_start_pos=4100;
+buf_step=4100;
 
 @slider
 mode=slider1;
-buf=buf_start_pos*slider2;
+buf=buf_start_pos+buf_step*2*(slider2-1);
 
 @block
 mode==0 ?
