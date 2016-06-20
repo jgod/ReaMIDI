@@ -11,17 +11,36 @@ for i=1,#events,1 do
   local e=events[i]
   DBG(e.e_type)
   if e.e_type==types.cc then 
-    DBG("is a CC") 
+    DBG("is a CC")    
     e.msg3=e.msg3*.5
     setEvent(e)
   end
   if e.e_type==types.note then
     _DBG=true
-    DBG("is a note") 
+    DBG("Note...")
+    it=reaper.GetMediaItemTake_Item(e.tk)
+    sp=reaper.GetMediaItemInfo_Value(it, "D_POSITION")
+    pqnppq=reaper.MIDI_GetProjQNFromPPQPos(e.tk, e.startpos_ppq)
+    DBG("PQN from PPQ: "..pqnppq)
+    DBG("Item start pos (secs): "..sp)
+    so=reaper.GetMediaItemTakeInfo_Value(e.tk, "D_STARTOFFS")
+    DBG("Take start offset: "..so)
+    
+    
+    sqn=reaper.TimeMap2_timeToQN(0, sp)
+    
+    DBG("Item start pos (PQN): "..sqn)
+
+    DBG("startpos_ppq = "..e.startpos_ppq)
+    DBG("startpos pqn = "..e.startpos)
+    DBG("measure startpos = "..e.meas_startpos)
+    DBG("length = "..e.len)
+    DBG("vel = "..e.vel)
+    
     _DBG=false
     e.vel=e.vel*2
     e.len=e.len/2
-    setEvent(e)
+    --setEvent(e)
   end
   if e.e_type==types.pitchbend then
     DBG("is a pitchbend") 
