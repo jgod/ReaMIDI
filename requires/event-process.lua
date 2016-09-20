@@ -100,7 +100,9 @@ p, c, v, l, tsn, tsd, ts, e2n=nil
 nn=""
 all=true
 ec=0
+e={}
 ect=0 --event count time dependant
+nct=0 --note count time dependant
 function eventProcess(str, act, final, select_if_true)
   local target,events=getTargetEvents(false, false)
   -- see midi.lua for available event parameters
@@ -122,6 +124,7 @@ function eventProcess(str, act, final, select_if_true)
       --p=n.pitch  c=n.chan+1  v=n.vel  l=n.len  tsn=n.ts_num   tsd=n.ts_denom
       e.ts=tostring(e.ts_num).."/"..tostring(e.ts_denom)
       if eval(str) then
+        
         if act~="" then
           process(act)
           -- setting channel only seems to work reliably when MIDI editor
@@ -130,6 +133,7 @@ function eventProcess(str, act, final, select_if_true)
           tk_events[#tk_events+1]=e
         else
           if select_if_true then selectEvent(e,true) end
+          --if create_item then 
         end
         cnt=cnt+1
       else
