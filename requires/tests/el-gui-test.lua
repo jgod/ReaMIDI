@@ -2,7 +2,7 @@ dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/el gui.lua")
 
 
 
-
+LGUI=getLGUI()
 
 function goToEditMode()
   LGUI.edit_mode=not LGUI.edit_mode
@@ -54,12 +54,12 @@ function init()
                       {{"Mary",false},{"had",false},{"a",false},
                       {"little",false},{"lamb",false}}
                 )
-  function llc:onDoubleClick(x,y,m_mod)
-    local ok, str=reaper.GetUserInputs("Rename",1,"Name: ","")
-    y=y-self.y
-    local row=math.floor((y-self.margin)/self.row_height)+self.state.first_vis_row
-    if ok then self.state[row][1]=str end
-  end
+  
+  
+function llc:onEnter()
+  self:addEntry("entry "..#self.state+1)
+end
+  
   
   --[[
   function llc:onEnter()
@@ -71,7 +71,7 @@ function init()
   LGUI.addControl(llc)
   
   llc:setColour(llc.colour_fg, 0,0,0)
-  
+  --]]
   editbox=LEditBox(20,400,300,20,50,50,true)
   LGUI.addControl(editbox)
   

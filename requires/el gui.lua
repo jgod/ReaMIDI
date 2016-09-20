@@ -2,6 +2,7 @@ dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/class.lua")
 dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/pickle.lua")
 dofile(reaper.GetResourcePath().."/Scripts/ReaMIDI/requires/strings.lua")
 
+do
 
 function DBG(str)
   ---[[
@@ -21,7 +22,10 @@ function DBG(str)
   --]]
 end
 
-LGUI={}
+
+local LGUI={}
+
+function getLGUI() return LGUI end
 
 LGUI.position={
   top=1,
@@ -32,11 +36,19 @@ LGUI.position={
 }
 
 
+LGUI.control_type={
+  list=1,
+  editbox,
+  checkbox
+}
+
+
 -- 'static' stuff so '.' not ':'
 LGUI.controlled_idx=nil 
 LGUI.controls={}
+LGUI.temp_controls={}
 LGUI.state_name=""
-LGUI.idx=1
+LGUI.idx=1 --index of first control
 LGUI.clipboard=""
 LGUI.edit_mode=false
 LGUI.states={}
@@ -45,6 +57,8 @@ LGUI.countdown=LGUI.timer
 LGUI.current_project=reaper.EnumProjects(-1,"")
 LGUI.exit_script=false
 LGUI.mainFunction=nil
+LGUI.temp={}
+
 
 
 function LGUI.setMainFunction(func)
@@ -166,8 +180,13 @@ function LGUI.process()
      reaper.Main_OnCommand(40044,-1) --toggle play (spacebar)
     end
   end
-  for i=1,#controls,1 do
+  -- controls can be deleted in update so check
+  local noc=#controls
+  local i=1
+  while i<=noc do
     controls[i]:update(gfx.mouse_x,gfx.mouse_y,gfx.mouse_cap)
+    noc=#controls
+    i=i+1
   end
   gfx.update()
   if LGUI.countdown<=0 then 
@@ -194,7 +213,6 @@ function LGUI.slowProcess()
     LGUI.current_project_name=p_name
     DBG("Different project:  "..p_name)
     local s=reaper.GetProjExtState(0,LGUI.state_name,"init")
-    DBG("init state: -"..s.."-")
     if s+0==0 then
       DBG("initting script")
       reaper.SetProjExtState(0,LGUI.state_name,"init","init")
@@ -216,6 +234,25 @@ end
 function LGUI.atExit()
  --
 end
+
+
+
+LContainer = class(
+      function (cont)
+        cont.controlled_idx=nil 
+        cont.controls={}
+        cont.state_name=""
+        cont.idx=1
+        cont.clipboard=""
+        cont.edit_mode=false
+        cont.states={}
+        cont.timer=8 --number of periods to wait before doing non time-critical stuff
+        cont.countdown=cont.timer
+        cont.current_project=reaper.EnumProjects(-1,"")
+        cont.exit_script=false
+        cont.mainFunction=nil
+      end
+)
 
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
@@ -258,8 +295,8 @@ end
 
 function LControl:setColour(colour, r,g,b)
   colour[1]=r
-  colour[2]=g
-  colour[3]=b
+  colour[2]=g -- Lua always passes tables by reference, so no
+  colour[3]=b -- need to return anything.
 end
 
 
@@ -268,26 +305,54 @@ function LControl:getColour(colour)
 end
 
 
+function LControl:setTempControl(c)
+  LGUI.addControl(c)
+  
+  LGUI.controlled_idx=c.idx
+  c.has_focus=true
+  DBG("temp idx="..c.idx)
+  LGUI.temp.control=c
+  LGUI.temp.parent=self
+  --c:takeFocusControl()
+end
+
+
+function LControl:endTempControl()
+  LGUI.temp.control=nil
+  LGUI.temp.parent=nil
+end
+
+
 function LControl:takeFocusControl()
   if self.can_focus then
     if LGUI.controlled_idx~=nil then
-        LGUI.controls[LGUI.controlled_idx].has_focus=false
+        LGUI.controls[LGUI.controlled_idx]:endFocus()
     end
     LGUI.controlled_idx=self.idx
+    DBG("no controls="..#LGUI.controls)
+    DBG("takeFocusControl.idx="..self.idx)
     LGUI.controls[LGUI.controlled_idx].has_focus=true
   end
 end
 
 
 function LControl:update(mx, my, m_mod)
-   --local mx=gfx.mouse_x   local my=gfx.mouse_y   local m_mod=gfx.mouse_cap
-   --if LGUI.controlled_idx~=nil and LGUI.controlled_idx~=self.idx then
-   --  self:prepDraw(mx,my) return
-   --end
-   if self.last_x<0 and self.last_y<0 then
+   if self.last_x==nil or self.last_y==nil or self.last_x<0 and self.last_y<0 then
       self.last_x, self.last_y = mx, my
    end
    local in_rect=self:isInRect(mx, my)
+   --if not in_rect and not LGUI.controlled_idx==self.idx then 
+   --  self:prepDraw(mx,my) return 
+   --end
+   
+   if LGUI.temp.parent==self then
+     DBG("in parent control")
+     self:prepDraw()
+     DBG("about to process temp")
+     --self.temp.control.update(self.temp_control,mx,my,m_mod)
+     return
+   end
+   
    if m_mod&1 > 0 then
      if self.__is_mouse_down then
        if self.last_x ~= mx or self.last_y ~= my then
@@ -301,16 +366,15 @@ function LControl:update(mx, my, m_mod)
      else
        if in_rect then --self.__is_mouse_in then
          self.orig_x, self.orig_y = mx-self.x, my-self.y
-         
          if self.edit_mode==false then
-           if os.time()-self.__mouse_up_time<0.2 then
+           if os.time()-self.__mouse_up_time<0.13 then
              self:onDoubleClick(mx,my,m_mod)
              self.__mouse_up_time=1
              self.__double_clicked=true
            else
              if self.__is_mouse_in==true then
                DBG("onMouseDown idx:"..self.idx)
-               self:takeFocusControl()
+               --self:takeFocusControl()
                self:onMouseDown(mx, my, m_mod)
              end
            end
@@ -431,10 +495,26 @@ function LControl:getIdx()
 end
 
 
+function LControl:destroy()
+  local noc=#LGUI.controls
+  for i=self.idx,#LGUI.controls,1 do
+    if i<noc then
+      LGUI.controls[i]=LGUI.controls[i+1]
+      LGUI.controls[i].idx=LGUI.controls[i].idx-1
+    end
+  end
+  LGUI.controls[#LGUI.controls]=nil
+  if LGUI.temp.control==self then self:endTempControl() end
+  LGUI.idx=LGUI.idx-1
+end
+
+
 -- override these in derived controls
 function LControl:onEnter() self:onClick(nil,nil,nil) end
 
 function LControl:onChar(c) end
+
+function LControl:endFocus() self.has_focus=false end
 
 function LControl:setState(state) end
 
@@ -459,6 +539,14 @@ function LControl:draw() end
 
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
+--[[
+  LListControl
+  self.state.num_columns
+  self.state.num_rows
+  self.state.contents=table per row containing table per column/entry
+    
+--]]
+
 LListControl=class(LControl,
           function (self,x,y,w,h,margin,font,colour_fg,colour_bg,state)
             LControl.init(self,x,y,w,h)
@@ -468,31 +556,31 @@ LListControl=class(LControl,
             self.font=font
             self.colour_fg=colour_fg
             self.colour_bg=colour_bg
+            if state.num_rows==nil then state.num_rows=10 end
+            if state.num_columns==nil then state.num_columns=1 end
+            if state.first_vis_row==nil then state.first_vis_row=1 end
             self.state=state
-            self.num_rows=10
-            self.state.first_vis_row=1
             self.row_height=19
             self.selected_rows={}
             self.enabled=true
             self.last_clicked_row=-1
-            --LControl.addControl(self)
             self:recallState(LGUI.state_name)
             self.state.first_vis_row=self.state.first_vis_row==nil
                  and 1 or self.state.first_vis_row
-            --DBG(self.state)
           end
 )
 
 
 function LListControl:addEntry(str)
   local tab={str,false}
-  self.state[#self.state+1]=tab
-  if #self.state>self.num_rows then
-    self.state.first_vis_row=#self.state-self.num_rows+1
+  local nss=#self.state
+  self.state[nss+1]=tab
+  if #self.state>self.state.num_rows then
+    self.state.first_vis_row=nss-self.state.num_rows+1
   else
     self.state.first_vis_row=1
   end
-  self:setOnlySelected(#self.state,false)
+  self:setOnlySelected(nss,false)
 end
 
 
@@ -508,6 +596,14 @@ function LListControl:setOnlySelected(row,toggle)
   end
   self.state[row][2]=
    toggle and not self.state[row][2] or true
+end
+
+
+function LListControl:getRowCoords(row)
+  local y=self.y+self.margin+((row-self.state.first_vis_row)
+             *self.row_height)
+  return self.x+self.margin, y,
+     self.w-self.margin*2, self.row_height
 end
 
 
@@ -551,7 +647,7 @@ function LListControl:draw()
   
   local inc=1
   local fvr=self.state.first_vis_row~=nil and self.state.first_vis_row or 1
-  for i=fvr,fvr+self.num_rows-1,1 do
+  for i=fvr,fvr+self.state.num_rows-1,1 do
     local x, y=self.x+self.margin, (self.y+(self.row_height*(inc-1)))+self.margin
     gfx.x, gfx.y = x,y
     if self.state[i] and self.state[i][2]==true then
@@ -586,7 +682,7 @@ function LListControl:selectPrevOrNext(prev)
   end
   if entry<#self.state and not prev then
     self:setOnlySelected(entry+1,false)
-    if entry+1 > self.state.first_vis_row+self.num_rows-1 then
+    if entry+1 > self.state.first_vis_row+self.state.num_rows-1 then
       self.state.first_vis_row=self.state.first_vis_row+1
     end
   end
@@ -599,8 +695,30 @@ function LListControl:onChar(c)
 end
 
 
-function LListControl:onEnter()
-  self:addEntry("entry "..#self.state+1)
+function LListControl:setField(row,column,text)
+   self.state[row][1]=text
+end
+
+
+function LListControl:onDoubleClick(x,y,m_mod)
+  --local ok, str=reaper.GetUserInputs("Rename",1,"Name: ","")
+  y=y-self.y
+  if y>self.margin then
+    local row=math.floor((y-self.margin)/self.row_height)+self.state.first_vis_row
+    --if ok then self.state[row][1]=str end 
+    if row==self.last_clicked_row then
+      x,y,w,h=llc:getRowCoords(row)
+      eb=LEditBox(x,y,w,h,5,50,true,self.state[row][1],true)
+      eb.has_focus=true
+      
+      local this_control=self
+      function eb:onEnter() this_control:setField(row,0,eb:getText()) end
+      self:setTempControl(eb)
+      
+    else
+      self.last_clicked_row=row
+    end
+  end
 end
 
 
@@ -817,9 +935,9 @@ function LComboBox:setOptions()
   self.menu_string=""
   for i=1,#self.options,1 do
     self.menu_string=self.menu_string.."|"..self.options[i]
-  end
-    
+  end   
 end
+
 
 function LComboBox:onClick(x,y,m_mod)
   gfx.x,gfx.y=self.x,self.y
@@ -833,6 +951,23 @@ function LComboBox:draw()
   gfx.x,gfx.y=self.x+4,self.y+2
   gfx.setfont(1,"Arial", 14)--, "ub")
   gfx.printf(self.options[self.state.choice])
+end
+
+
+function LComboBox:selectPrevOrNext(prev)
+  if prev then 
+    local nv=self.state.choice-1
+    if nv>=1 then self.state.choice=nv end
+  else
+    local nv=self.state.choice+1
+    if nv<=#self.options then self.state.choice=nv end
+  end
+end
+
+
+function LComboBox:onChar(c)
+  if c==0x7570 then  self:selectPrevOrNext(true)-- up arrow
+  elseif c==0x646F776e then self:selectPrevOrNext(false) end
 end
 
 
@@ -883,7 +1018,6 @@ function LSlider:onMouseDown(mx,my,m_mod)
     self.state.fc_pos=pos
     self.state.val=(self.state.fc_pos-self.hcw)/(self.w-(self.hcw*2))
   end
-  reaper.ShowConsoleMsg("new val:"..self.state.val.."\n")
 end
 
 
@@ -893,7 +1027,6 @@ function LSlider:onMouseMove(mx,my,m_mod)
   if pos>self.w-self.hcw then pos=self.w-self.hcw end
   self.state.fc_pos=pos
   self.state.val=(self.state.fc_pos-self.hcw)/(self.w-(self.hcw*2))
-  reaper.ShowConsoleMsg("new val:"..self.state.val.."\n")
 end
 
 
@@ -901,20 +1034,21 @@ end
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 LEditBox=class(LControl,
-            function (self,x,y,w,h,l,maxlen,has_focus)
+            function (self,x,y,w,h,l,maxlen,has_focus,text,temp)
               LControl.init(self,x,y,w,h)
               self.type="edit_box"
               self.l,self.maxlen=l,maxlen
               self.caret, self.sel, self.cursstate=0,0,0
               self.state={}
-              self.state.text=""
+              self.state.text=text~=nil and text or " "
               self.has_focus=has_focus
               self.font,self.font_sz=1,h-4
               self.fgcol=0x0000FF   self.fgfcol=0x00FF00
               self.bgcol=0xFFFFFF
               self.txtcol=0x000001
               self.curscol=0x000000
-              self:recallState(LGUI.state_name)
+              self.temp=temp
+              if not temp then self:recallState(LGUI.state_name) end
               if self.state.text==nil then self.state.text="" end
               if self.has_focus then 
                 self:selectAll() 
@@ -929,8 +1063,14 @@ function LEditBox:setText(txt)
 end
 
 
+function LEditBox:getText()
+  return self.state.text
+end
+
+
 function LEditBox:endFocus()
   self.has_focus=false
+  if self.temp then self:destroy() end
   LGUI.controlled_idx=nil
 end
 
@@ -1025,7 +1165,7 @@ end
 
 
 function LEditBox:onChar(c)
-  --reaper.ShowConsoleMsg(DEC_HEX(c).."\n")
+  --DBG(DEC_HEX(c).."\n")
   if c==13 then self:endFocus()  self:onEnter()  return end --enter
   local just_cleared=nil
   if self.sel ~= 0 then
@@ -1071,3 +1211,4 @@ function LEditBox:addChar(c)
   self.caret=self.caret+1
 end
 
+return LGUI end
