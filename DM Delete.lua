@@ -1,18 +1,22 @@
--- D(rum) M(achine) Delete
+-- D(rum) M(achine) Edit
 
--- run script and held notes will be deleted from 
+-- run script and held notes will be edited in 
 -- either the active item in the MIDI editor or
 -- on an item between the loop cursors of a the 
 -- first selected track, which must be rec-armed.
 
+-- run script again to get out of edit mode
 
-
--- run script again to get out of delete mode
+-- edit modes are:  delete
+--              or  select
 
 
 local function DBG(str)
   --reaper.ShowConsoleMsg(str.."\n")
 end
+
+local edit_types={DELETE="Delete", SELECT="Select"}
+local action = edit_types.DELETE;
 
 jsfx={} --store details of helper effect
 jsfx.name="Script Note Getter"
@@ -67,8 +71,9 @@ function getOrAddInputFx(track,fx,create_new)
 end
 
 
-local delete_ahead=0.15 --so that notes don't sound
+local look_ahead=0.17 --so that notes don't sound
 function getNotes(tk,pitches,pp_qn,check_start,l_start)
+  DBG("Loop start: ".. l_start)
   local ni, tr, it
   local midi={}
   cnt=0
@@ -76,14 +81,25 @@ function getNotes(tk,pitches,pp_qn,check_start,l_start)
   local ok, sel, mute, startpos, endpos, chan, pitch, vel=reaper.MIDI_GetNote(tk, 0)
   while ok do
     for i=1,#pitches,1 do
-      if pitch==pitches[i] then
-        startpos=reaper.MIDI_GetProjQNFromPPQPos(tk, startpos)
-        endpos=reaper.MIDI_GetProjQNFromPPQPos(tk, endpos)
-        if (startpos<=pp_qn+delete_ahead and endpos>=pp_qn) or 
-            (check_start and startpos>=l_start and startpos<=l_start+delete_ahead) then
-          local note={ type="note", idx=cnt, -- 6
+      if pitch==pitches[i].note and chan==pitches[i].chan then
+        startpos_qn=reaper.MIDI_GetProjQNFromPPQPos(tk, startpos)
+        endpos_qn=reaper.MIDI_GetProjQNFromPPQPos(tk, endpos)
+        DBG("idx = "..cnt..";  startpos: "..startpos.."   endpos: "..endpos)
+        if endpos_qn<startpos_qn then
+          -- need to 'touch' notes that extend beyond item edge
+          -- to set the true endpos instead of the start of item (PPQ=0)
+          reaper.MIDI_SetNote(tk, cnt, not sel, nil, nil, nil, nil, nil, nil, nil)
+          reaper.MIDI_SetNote(tk, cnt, sel, nil, nil, nil, nil, nil, nil, nil)
+          DBG(" ------------------ end<start") 
+        end
+        -- when a note is recorded that extends beyond the item boundary, while
+        -- recording it has the correct startpos, but the endpos is the item start
+        -- minus 8 (maybe this is just 4/4 haven't checked yet)
+        if (startpos_qn<=pp_qn+look_ahead and (endpos_qn>=pp_qn or endpos==0)) or 
+            (check_start and startpos_qn>=l_start and startpos_qn<=l_start+look_ahead) then
+          local note={ type="note", tk=tk, idx=cnt, -- 6
                     select=sel,mute=mute, ostartpos=startpos, --12
-                    startpos=startpos, endpos=endpos, len=endpos-startpos, 
+                    startpos=startpos_qn, endpos=endpos_qn, len=endpos-startpos, 
                     pitch=pitch, chan=chan, vel=vel }
           midi[#midi+1]=note
         end
@@ -95,13 +111,15 @@ function getNotes(tk,pitches,pp_qn,check_start,l_start)
   return midi
 end
 
+local takes={}
+local was_recording = false -- to use in prep and dMedit
 
-function dMdelete()
+function dMedit()
   local is_new_value,_,_,_,_,_,val=reaper.get_action_context()
-  if is_new_value and val==0 then return end
+  if is_new_value then return end
   -- tr, tk, helper_idx set in prep()
   -- get number of held notes from helper plugin
-  nib=reaper.TrackFX_GetParam(tr, helper_idx, 1) --1=note in buffer
+  local nib=reaper.TrackFX_GetParam(tr, helper_idx, 1) --1=note in buffer
   if nib>0 then
     -- get loop points and check whether cursor is near the end
     -- so we can delete on return to start of loop without them
@@ -111,29 +129,40 @@ function dMdelete()
     l_end=reaper.TimeMap2_timeToQN(0, l_end)
     local pp=reaper.GetPlayPosition()
     local pp_qn=reaper.TimeMap2_timeToQN(0, pp)
-    local check_start=l_end-pp_qn<delete_ahead and true or false
+    local check_start=l_end-pp_qn<look_ahead and true or false
     
     --get held notes from buffer in helper plugin
     local pitches={}
     for i=1,nib,1 do
       reaper.TrackFX_SetParam(tr,helper_idx,2,i-1) --set Note# to i
-      pitches[#pitches+1],_,_=reaper.TrackFX_GetParam(tr, helper_idx, 3)
+      pitches[#pitches+1] = {}
+      pitches[#pitches].note,_,_=reaper.TrackFX_GetParam(tr, helper_idx, 3)
+      pitches[#pitches].chan = reaper.TrackFX_GetParam(tr, helper_idx, 4)
     end 
-    local notes=getNotes(tk,pitches,pp_qn,check_start,l_start)
-      
+    --reaper.MIDI_Sort(tk)
+    local notes = {}
+    for i=1, #takes do
+      local n = getNotes(takes[i],pitches,pp_qn,check_start,l_start)
+      for ii=1, #n do
+        notes[#notes+1] = n[ii]
+      end
+    end
     if #notes>0 then
-      DBG("Deleting notes...")
+      DBG("Start "..action.." notes...")
       reaper.Undo_BeginBlock() -- create undo point for these notes
       --always go backwards deleting notes
       for i=#notes,1,-1 do
-        reaper.MIDI_DeleteNote(tk,notes[i].idx)
+        if action == edit_types.SELECT then
+          reaper.MIDI_SetNote(notes[i].tk, notes[i].idx, true, nil, nil, nil, nil, nil, nil, nil)
+        else
+          reaper.MIDI_DeleteNote(notes[i].tk, notes[i].idx)
+        end
       end
-      reaper.Undo_EndBlock("DM Delete - delete notes",4)
+      reaper.Undo_EndBlock("DM "..action.." - ".. action.. " notes",4)
     end
-    
     reaper.UpdateArrange()
   end
-  reaper.defer(dMdelete)
+  reaper.defer(dMedit)
 end
 
 
@@ -152,41 +181,59 @@ function getMidiEditorTrackTake()
 end
 
 
+
+local function getTakes(tr)
+  local num_items=reaper.CountTrackMediaItems(tr)
+  if num_items>0 then
+    local l_start,l_end=reaper.GetSet_LoopTimeRange(false,true,0,0,true)
+    local cur=reaper.GetCursorPosition()
+    local i=1
+    while i<=num_items do
+      local it=reaper.GetTrackMediaItem(tr,i-1)
+      local i_start = reaper.GetMediaItemInfo_Value(it, "D_POSITION")
+      local i_end = reaper.GetMediaItemInfo_Value(it, "D_LENGTH") + i_start
+      if i_start < l_end and i_end > l_start then
+        --if math.floor(l_start*10)==math.floor(i_start*10) then
+       
+        tk=reaper.GetActiveTake(it)
+        takes[#takes+1]=tk
+        --i=num_items
+      end
+      i=i+1
+    end
+    DBG("#takes = "..#takes)
+  end
+end
+
+
+
 function prep()
   DBG("in prep")
   reaper.get_action_context() -- to clear is_new_value for checking
                               -- for new presses in main loop
   tr,tk=getMidiEditorTrackTake()
-  if tk==nil then 
+  if tr~=nil then
+    getTakes(tr)
+  else
     if reaper.CountSelectedTracks()>0 then
-        tr=reaper.GetSelectedTrack(0,0)
-        local _,t_name=reaper.GetSetMediaTrackInfo_String(tr,"P_NAME"," ",false)
-        local _, ts=reaper.GetTrackState(tr)
-        if ts&64==64 and ts&2==2 then -- is rec armed and selected
-        local num_items=reaper.CountTrackMediaItems(tr)
-        if num_items>0 then
-          local l_start,l_end=reaper.GetSet_LoopTimeRange(false,true,0,0,true)
-          local cur=reaper.GetCursorPosition()
-          local i=1
-          while i<=num_items do
-            local it=reaper.GetTrackMediaItem(tr,i-1)
-            local i_start=reaper.GetMediaItemInfo_Value(it,"D_POSITION")
-            if math.floor(l_start*10)==math.floor(i_start*10) then
-              tk=reaper.GetActiveTake(it)
-              i=num_items
-            end
-            i=i+1
-          end
-        end
+      tr=reaper.GetSelectedTrack(0,0)
+      DBG("PlayState = "..reaper.GetPlayState(0))
+      was_recording = reaper.GetPlayState(0)&4 == 4 and true or false
+      if was_recording then reaper.Main_OnCommand(1013, -1) end -- Transport: Record
+      local _,t_name=reaper.GetSetMediaTrackInfo_String(tr,"P_NAME"," ",false)
+      local _, ts=reaper.GetTrackState(tr)
+      if ts&64==64 and ts&2==2 then -- is rec armed and selected
+        getTakes(tr)
       end
     end
   end
-  if tk~=nil and reaper.BR_IsTakeMidi(tk) then
+  
+  if #takes > 0 and reaper.BR_IsTakeMidi(tk) then
     helper_idx=getOrAddInputFx(tr,jsfx,true)
     DBG("helper_idx="..helper_idx)
     if helper_idx>-1 then
-      reaper.TrackCtl_SetToolTip("!-!-!-!-!-!  Live Delete ACTIVE  !-!-!-!-!-!", 800,20, true)
-      dMdelete()
+      reaper.TrackCtl_SetToolTip("!-!-!-!-!-!  Live "..action.." ACTIVE  !-!-!-!-!-!", 800,20, true)
+      dMedit()
     else
       DBG("No effect added")
     end
@@ -195,8 +242,13 @@ end
 
 
 function cleanUp()
+  DBG("PlayState = "..reaper.GetPlayState(0))
+  if was_recording and reaper.GetPlayState(0)&4 ~= 4 then
+    DBG("Setting record....") 
+    reaper.Main_OnCommand(1013, -1) 
+  end
   if helper_idx~=nil then
-    reaper.TrackCtl_SetToolTip("--- Live Delete Inactive ---", 800,20, true)
+    reaper.TrackCtl_SetToolTip("--- Live "..action.." Inactive ---", 800,20, true)
     DBG("exit")
     --removeJSEffect(tr,jsfx) --set chunk causes glitches
                               --so can't remove input FX
@@ -214,7 +266,8 @@ slider1:0<0,1,1{On,Off}>Active (eats notes)
 slider2:0<0,127,1>Notes in buffer
 slider3:0<0,1000,1>Note # (for script)
 slider4:0<0,127,1>Output Pitch
-slider5:0<0,1,1>Trigger
+slider5:0<0,15,1>Output channel
+slider6:0<0,1,1>Trigger
 
 
 @init
@@ -261,7 +314,8 @@ function addRemoveNoteFromBuffer(m1,m2,m3)
 
 @slider
 p=slider3*nb_width; //position in buffer
-slider4=notebuf[p];
+slider4=notebuf[p]; // note
+slider5=notebuf[p+1]; // channel
 
 
 @block
@@ -270,10 +324,10 @@ while (midirecv(offset,msg1,msg2,msg3))
   slider1 ? (
     midisend(offset,msg1,msg2,msg3);
   ):( //eating notes
-    msg1|$x90==$x90 ? (
+    msg1&$xF0==$x90 ? (
       addRemoveNoteFromBuffer(msg1,msg2,msg3);
     );
-    msg1|$x80==$x80 ? (
+    msg1&$xF0==$x80 ? (
       addRemoveNoteFromBuffer(msg1,msg2,msg3)==-1 ? (
         //no note in buffer, so allow trailing note-offs through
         midisend(offset,msg1,msg2,msg3);
@@ -284,12 +338,13 @@ while (midirecv(offset,msg1,msg2,msg3))
 )
 ]]
 
+
 script_init=true
 reaper.atexit(cleanUp)
 script_init=false
 reaper.Undo_BeginBlock()
 prep()
-reaper.Undo_EndBlock("DM Delete",-1)
+reaper.Undo_EndBlock("DM "..action,-1)
 
 
 
