@@ -3,15 +3,33 @@ function DBG(str)
   if _DBG then reaper.ShowConsoleMsg(str.."\n") end
 end
 
+-- a list of MIDI plugin manufacturers or just plugins that
+-- report as VSTi but aren't instruments. Add your own here.
+local blacklist = {
+    "Insert Piz Here", "RapidComposer", "graywolf2004", "Kirnu"
+ }
+
+
+local function isFXonBlacklist(name)
+  for i = 1, #blacklist do
+    if name:match(blacklist[i]) then return true end
+  end
+  return false
+end
 
 
 local function getInstrumentIdx(track)
-  --TODO: use whitelist or blacklist or something to 
-  --avoid returning VSTi MIDI plugins.
-  --reaper-fxfolders.ini uses file paths names
-  return reaper.TrackFX_GetInstrument(track)
+  -- iterate through FX, checking if instruments are
+  -- actual instruments and not on blacklist
+  local num_fx = reaper.TrackFX_GetCount(track)
+  local idx = -1
+  for i = num_fx,1,-1 do 
+    local ok, name = reaper.TrackFX_GetFXName(track, i-1,"")
+    if name:match("VSTi") == "VSTi" and not isFXonBlacklist(name) then idx = i-1 break end
+  end
+  
+  return idx
 end
-
 
 
 local function showHideFX(track,fx_idx)
@@ -22,26 +40,40 @@ local function showHideFX(track,fx_idx)
 end
 
 
+local function checkReceives(track)
+  local num_receives=reaper.GetTrackNumSends(track,-1)
+  if num_receives > 0 then
+    local ot=reaper.BR_GetMediaTrackSendInfo_Track(track, -1 , 0, 0)
+    showHideFX(ot,getInstrumentIdx(ot))
+    return true
+  end
+  return false            
+end
+
+
 function openInstrument()
   local sts=reaper.CountSelectedTracks(0)
-
   if sts==1 then
-    
     local tr=reaper.GetSelectedTrack(0,0)
     if tr~=nil then      
-      local fx=reaper.TrackFX_GetInstrument(tr)
+      local fx=getInstrumentIdx(tr)
       if fx>-1 then
         showHideFX(tr,fx)
+        return
       else
         if reaper.GetTrackNumSends(tr,0)>0 then
           local ok, str=reaper.GetTrackSendName(tr, 0, "")
-          DBG(str)
           -- 0s = idx, idx, tracktype
           local st=reaper.BR_GetMediaTrackSendInfo_Track(tr,0 , 0, 1)
           local bus=reaper.BR_GetSetTrackSendInfo(tr, 0, 0, "I_MIDI_DSTBUS", false, 0)
-          if bus==-1 then reaper.ShowMessageBox("First send does not send MIDI","Action not performed",0) return end
+          if bus==-1 then --check if it's an output track
+            checkReceives(tr)
+          end
           local fx=getInstrumentIdx(st)
           showHideFX(st,fx)
+          return
+        else
+          checkReceives(tr)
         end
       end
     end
